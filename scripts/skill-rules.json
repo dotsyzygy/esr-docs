@@ -20,6 +20,15 @@
     { "skill": "Bind Demon", "match": "^StrSkillManaCostPerSecond$", "$comment": "string missing from the game data" },
     { "skill": "Fire Whirlwind", "match": "^physicaldamagewhilewwdesc$", "$comment": "string missing from the game data" }
   ],
+  "extraLines": [
+    { "$comment": "skilldesc has no lines and the skill grants no stats; Spirit of Nature's life calc multiplies by (100 + this skill's level * 5)%",
+      "skill": "Spirit of Nature Mastery", "lines": [{ "text": "Spirit of Nature Life: %+d%%", "x": "lvl*5" }] },
+    { "$comment": "skilldesc has no lines; the summoned raven's damage and hits come from skills.txt",
+      "skill": "Bloodraven Charge Raven", "lines": [
+        { "text": "Raven Damage: %d-%d", "x": "pnma", "y": "pxma" },
+        { "text": "Attacks per Raven: %d", "x": "clc3" }
+      ] }
+  ],
   "oskillProperties": ["oskill"],
   "hideSkills": [],
   "otherTitle": "Other Skills (oskills)",

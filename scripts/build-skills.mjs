@@ -47,6 +47,9 @@ const report = {
   badText: new Map(),
   skippedOskills: new Map(),
   hiddenLines: new Map(),
+  statLines: new Map(),
+  undescribedStats: new Map(),
+  noLines: new Map(),
   classCounts: new Map(),
 };
 
@@ -72,6 +75,7 @@ for (const r of skillRows) {
   skillById.set(r['*Id'], r);
 }
 const descByKey = new Map(readTsv('skilldesc.txt').map(d => [d.skilldesc, d]));
+const statByKey = new Map(readTsv('itemstatcost.txt').map(r => [r.Stat.toLowerCase(), r]));
 const missileByKey = new Map();
 for (const m of readTsv('missiles.txt')) if (m.Missile) missileByKey.set(m.Missile.toLowerCase(), m);
 
@@ -306,6 +310,45 @@ function lines(d, prefix, count, context, skillKey, { reverse = false } = {}) {
   return reverse ? out.reverse() : out;
 }
 
+// Some skills (mostly item oskills such as Magic Mastery) have no description lines at all.
+// Their effect is the stats they grant, so describe those the way the game words them on
+// items: a "%+d%% to Magic Spell Damage" template filled with the passive/aura calc.
+function statTemplate(statKey) {
+  const st = statByKey.get(statKey.toLowerCase());
+  if (!st) return null;
+  const s = str(st.descstrpos) || str(st.descstrneg);
+  if (!s) return null;
+  const pct = s.replace(/%/g, '%%');
+  const before = +st.descval === 2 ? false : st.descval !== '0';
+  const wrap = v => (+st.descval === 0 ? pct : before ? `${v} ${pct}` : `${pct} ${v}`);
+  switch (+st.descfunc) {
+    case 19: return s;
+    case 1: case 12: return wrap('%+d');
+    case 2: return wrap('%d%%');
+    case 3: return wrap('%d');
+    case 4: return wrap('%+d%%');
+    default: return null;
+  }
+}
+
+function statLines(row, context) {
+  const out = [];
+  const add = (stat, token) => {
+    if (!stat) return;
+    const a = statTemplate(stat);
+    if (!a) { bump(report.undescribedStats, stat, context); return; }
+    out.push({ t: 13, a, x: token });
+    bump(report.statLines, context, stat);
+  };
+  for (let i = 1; i <= 14; i++) add(row[`passivestat${i}`], `pst${i}`);
+  for (let i = 1; i <= 6; i++) add(row[`aurastat${i}`], `ast${i}`);
+  return out;
+}
+
+// Hand-written lines from skill-rules.json extraLines, for skills whose effect the data
+// doesn't describe anywhere: { skill, lines: [{ text, x, y }] } (text is a printf template).
+const extraLines = new Map((rules.extraLines || []).map(x => [x.skill.toLowerCase(), x.lines]));
+
 const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const hidden = new Set((rules.hideSkills || []).map(s => s.toLowerCase()));
 
@@ -331,12 +374,19 @@ function entryFor(row, cls) {
   // Descriptions are hard-wrapped for the tooltip; rejoin a line that continues a sentence
   // (starts lowercase), keep breaks before lines that start a new one.
   const desc = text(d['str long'] || d['str short'], name).replace(/\n(?=[a-z])/g, ' ');
-  if (desc && desc !== d['str long']) e.d = desc;
+  // Some descriptions just repeat the name ("Magic Mastery"); don't show those.
+  if (desc && desc !== d['str long'] && desc.toLowerCase() !== name.toLowerCase()) e.d = desc;
   const ctx = `${name} (${row.skill})`;
   // In-game, the per-level desc lines read bottom-up (Mana Cost last); dsc2/dsc3 read top-down.
   const g = lines(d, 'dsc2', 5, ctx, key);
   const l = lines(d, 'desc', 6, ctx, key, { reverse: true });
   const s = lines(d, 'dsc3', 7, ctx, key);
+  if (!g.length && !l.length && !s.length) {
+    const extra = extraLines.get(key);
+    if (extra) l.push(...extra.map(x => ({ t: x.y ? 74 : 13, a: x.text, x: x.x, ...(x.y ? { y: x.y } : {}) })));
+    else l.push(...statLines(row, ctx));
+    if (!l.length) bump(report.noLines, ctx, e.d ? 'has a description' : 'no description');
+  }
   if (g.length) e.g = g;
   if (l.length) e.l = l;
   if (s.length) e.s = s;
@@ -471,6 +521,9 @@ ${reportTable('Unresolved strings', report.unresolvedStrings)}
 ${reportTable('Lines with unformatted text', report.badText, 50)}
 ${reportTable('Skipped oskills', report.skippedOskills)}
 ${reportTable('Lines hidden by rule', report.hiddenLines)}
+${reportTable('Lines built from the stats a skill grants (no skilldesc lines)', report.statLines)}
+${reportTable('Granted stats with no description', report.undescribedStats)}
+${reportTable('Skills with no lines at all', report.noLines)}
 `;
 
 if (typeof args.report === 'string') fs.writeFileSync(path.resolve(ROOT, args.report), md);

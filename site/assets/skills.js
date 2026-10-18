@@ -99,6 +99,7 @@
         if (!SkillCalc.usesCalc(line)) return false;
         return [1, 20, MAX].some(function (lv) { return low.line(rec, line, lv) !== high.line(rec, line, lv); });
       });
+      s._name = norm(s.n);
       s._text = norm([
         s.n, cls ? cls.title : '', s._tree, s.d || '', (s.pre || []).join(' '),
         s.pas ? 'passive' : '', s.aur ? 'aura' : '', s.c === 'other' ? 'oskill' : '',
@@ -251,27 +252,59 @@
     return true;
   }
 
+  // Search rank, lower first: the whole name, a name that starts with the query, a name with
+  // every term, a name with some of them, then matches elsewhere (descriptions, items, …).
+  function rank(s, query, terms) {
+    if (!terms.length) return 0;
+    if (s._name === query) return 0;
+    if (s._name.indexOf(query) === 0) return 1;
+    var hits = terms.filter(function (t) { return s._name.indexOf(t) >= 0; }).length;
+    return hits === terms.length ? 2 : hits ? 3 : 4;
+  }
+
+  // Stable sort by rank (the data's order breaks ties), and the best rank in a group.
+  function byRank(list) {
+    return list.map(function (s, i) { return { s: s, i: i }; })
+      .sort(function (a, b) { return a.s._rank - b.s._rank || a.i - b.i; })
+      .map(function (x) { return x.s; });
+  }
+  function bestRank(list) {
+    return list.reduce(function (m, s) { return Math.min(m, s._rank); }, Infinity);
+  }
+
   var shown = [];
 
   function renderResults() {
-    var terms = norm(state.q).split(/\s+/).filter(Boolean);
+    var query = norm(state.q).trim().replace(/\s+/g, ' ');
+    var terms = query.split(' ').filter(Boolean);
     var frag = document.createDocumentFragment();
     var tocFrag = document.createDocumentFragment();
     var filtering = !!(terms.length || state.cls);
     shown = [];
 
-    data.classes.forEach(function (cls) {
+    // While searching, classes and trees with the best name matches come first.
+    var groups = data.classes.map(function (cls, i) {
       var skills = data.skills.filter(function (s) { return s.c === cls.id && matches(s, terms); });
-      if (!skills.length) return;
+      skills.forEach(function (s) { s._rank = rank(s, query, terms); });
+      return { cls: cls, skills: byRank(skills), best: bestRank(skills), i: i };
+    }).filter(function (g) { return g.skills.length; })
+      .sort(function (a, b) { return a.best - b.best || a.i - b.i; });
+
+    groups.forEach(function (group) {
+      var cls = group.cls, skills = group.skills;
       var section = el('section', { class: 'ui-section sk-class', id: cls.id, 'aria-labelledby': 'h-' + cls.id }, [
         el('h2', { id: 'h-' + cls.id, text: cls.title }),
         cls.intro ? el('p', { class: 'ui-intro', text: cls.intro }) : null
       ]);
       var tocTrees = [];
       if (cls.trees && cls.trees.length) {
-        cls.trees.forEach(function (tree) {
+        cls.trees.map(function (tree) {
           var inTree = skills.filter(function (s) { return s.tr === tree.n; });
-          if (!inTree.length) return;
+          return { tree: tree, inTree: inTree, best: bestRank(inTree) };
+        }).filter(function (t) { return t.inTree.length; })
+          .sort(function (a, b) { return a.best - b.best || a.tree.n - b.tree.n; })
+          .forEach(function (t) {
+          var tree = t.tree, inTree = t.inTree;
           section.appendChild(el('h3', { class: 'sk-tree-title', id: tree.id, text: tree.title }));
           section.appendChild(skillList(inTree));
           tocTrees.push(el('li', null, [el('a', { href: '#' + tree.id, text: tree.title })]));
