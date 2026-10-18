@@ -50,6 +50,8 @@ const report = {
   statLines: new Map(),
   undescribedStats: new Map(),
   noLines: new Map(),
+  emptySkills: new Map(),
+  missileLines: new Map(),
   classCounts: new Map(),
 };
 
@@ -118,7 +120,7 @@ for (const r of readTsv('charstats.txt')) {
 }
 
 // ---------------------------------------------------------------------------
-// Where items grant skills as oskills
+// Where items grant skills: oskills, chance to cast (procs), charges and auras
 // ---------------------------------------------------------------------------
 
 const range = (min, max) => {
@@ -126,6 +128,33 @@ const range = (min, max) => {
   const lo = Math.min(a, b), hi = Math.max(a, b);
   return lo === hi ? `+${lo}` : `+${lo}-${hi}`;
 };
+
+// The item properties that grant a skill (skill-rules.json grantProperties), worded with the
+// stat's own string minus the skill name: "9% Chance to Cast Level 12 on Striking",
+// "Level 5 (20/20 Charges)". oskills show their bonus ("+3"), auras their level.
+const statByProperty = new Map(readTsv('properties.txt').map(p => [p.code, p.stat1]));
+const fill = (tmpl, vals) => { let i = 0; return tmpl.replace(/%(\+?)([dsi%])/g, (_, p, t) => (t === '%' ? '%' : String(vals[i++] ?? ''))); };
+const grantProps = new Set(rules.grantProperties || ['oskill']);
+function grantText(code, min, max) {
+  if (code === 'oskill') return range(min, max);
+  const st = statByKey.get((statByProperty.get(code) || '').toLowerCase()) || {};
+  const s = str(st.descstrpos);
+  const tidy = t => t.replace(/\s+/g, ' ').replace(/ \(/, ' (').trim();
+  if (+st.descfunc === 15 && s) return tidy(fill(s, [min, max, '']));
+  if (+st.descfunc === 24 && s) return tidy(fill(s, [max, '', min, min]));
+  if (/aura/.test(code)) return `Level ${range(min, max).slice(1)} Aura When Equipped`;
+  return range(min, max);
+}
+
+// Cube rows: Vessel of Souls and per-slot anointment outcomes are their own sources; other
+// recipes are counted and link to the Cube Recipes page.
+function cubeSource(r) {
+  const desc = r.description || '';
+  if (/^(Anointment - )?Vessel of Souls/i.test(desc)) return { k: 'Vessel of Souls' };
+  const m = /^Anointment - (.+?) \d+\b/i.exec(desc);
+  if (m) return { k: 'Anointment', n: m[1] };
+  return { k: 'Cube recipe' };
+}
 
 const slots = (n, f) => Array.from({ length: n }, (_, i) => f(i + 1));
 const SOURCES = [
@@ -169,19 +198,20 @@ const SOURCES = [
   },
 ];
 
-const oskillProps = new Set(rules.oskillProperties || ['oskill']);
 const sourcesBySkill = new Map(); // skill key -> Map(dedupe key -> source)
 for (const spec of SOURCES) {
   if (!fs.existsSync(path.join(PATHS.excel, spec.file))) continue;
   for (const r of readTsv(spec.file)) {
     if (spec.enabled && !spec.enabled(r)) continue;
     for (const [code, param, min, max] of spec.slots) {
-      if (!oskillProps.has(r[code])) continue;
+      if (!grantProps.has(r[code])) continue;
       const row = lookupSkill(r[param]);
       if (!row) { bump(report.skippedOskills, `unknown skill ${r[param]}`, spec.file); continue; }
       const key = row.skill.toLowerCase();
-      const src = spec.cube ? { k: spec.kind } : { k: spec.kind, n: spec.name(r), v: range(r[min], r[max]) };
+      const v = grantText(r[code], r[min], r[max]);
+      const src = spec.cube ? cubeSource(r) : { k: spec.kind, n: spec.name(r) };
       if (!spec.cube && !src.n) continue;
+      if (src.k !== 'Cube recipe') src.v = v;
       const m = sourcesBySkill.get(key) || new Map();
       const dk = JSON.stringify(src);
       if (m.has(dk)) { if (spec.cube) m.get(dk).c = (m.get(dk).c || 1) + 1; } else m.set(dk, src);
@@ -189,7 +219,7 @@ for (const spec of SOURCES) {
     }
   }
 }
-const SOURCE_ORDER = SOURCES.map(s => s.kind);
+const SOURCE_ORDER = [...SOURCES.map(s => s.kind), 'Anointment', 'Vessel of Souls'];
 // One entry per item; an item listed more than once (e.g. a runeword on several bases)
 // shows each of its levels: "+5 / +10".
 function sourcesFor(key) {
@@ -345,9 +375,69 @@ function statLines(row, context) {
   return out;
 }
 
+// Proc skills granted by items often have no description either; show the skill's own damage
+// when skills.txt has it. Poison is per frame in 256ths, so its total is over the length;
+// poison without a length (Poison Surge) is dealt instantly like the other Surges.
+const DAMAGE_TEXT = { fire: 'Fire Damage', cold: 'Cold Damage', ltng: 'Lightning Damage', mag: 'Magic Damage', pois: 'Poison Damage' };
+function damageLines(row) {
+  const out = [];
+  if (row.MinDam || row.MaxDam) out.push({ t: 74, a: 'Damage: %d-%d', x: 'pnma', y: 'pxma' });
+  const label = DAMAGE_TEXT[row.EType];
+  if (label && (row.EMin || row.EMax)) {
+    out.push(row.EType === 'pois' && row.ELen
+      ? { t: 74, a: `${label}: %d-%d`, x: 'enms*edln/256', y: 'exms*edln/256' }
+      : { t: 74, a: `${label}: %d-%d`, x: 'enma', y: 'exma' });
+  }
+  return out;
+}
+
+// A proc that fires a missile deals a share of weapon damage (skills.txt SrcDam, or else the
+// missile's own SrcDamage, in 128ths), which the missile, or a missile it spawns on hit, may convert to an element
+// (pSrvDmgFunc 1 with a numeric DmgCalc1 percentage and an EType). Only for skills that do
+// fire a missile; a skill without one may do something else entirely.
+const MISSILE_COLUMNS = ['srvmissile', 'srvmissilea', 'srvmissileb', 'srvmissilec'];
+const SUB_MISSILE_COLUMNS = ['HitSubMissile1', 'HitSubMissile2', 'SubMissile1', 'SubMissile2', 'ExplosionMissile'];
+function conversion(missileKey, depth = 0, seen = new Set()) {
+  const m = missileByKey.get((missileKey || '').toLowerCase());
+  if (!m || seen.has(m.Missile) || depth > 2) return null;
+  seen.add(m.Missile);
+  if (m.pSrvDmgFunc === '1' && /^\d+$/.test(m.DmgCalc1) && DAMAGE_TEXT[m.EType]) return { pct: +m.DmgCalc1, label: DAMAGE_TEXT[m.EType] };
+  for (const c of SUB_MISSILE_COLUMNS) {
+    const sub = m[c] && m[c] !== 'dummymissile' ? conversion(m[c], depth + 1, seen) : null;
+    if (sub) return sub;
+  }
+  return null;
+}
+function missileLines(row, context) {
+  const missiles = [...new Set(MISSILE_COLUMNS.map(c => row[c]).filter(Boolean))];
+  const src = +row.SrcDam || missiles.map(m => +(missileByKey.get(m.toLowerCase()) || {}).SrcDamage || 0).find(Boolean);
+  if (!missiles.length || !(src > 0)) return [];
+  const pct = Math.round(src * 100 / 128);
+  const conv = missiles.map(m => conversion(m)).find(Boolean);
+  const a = !conv ? `Deals ${pct}% of Weapon Damage`
+    : conv.pct >= 100 ? `Deals ${pct}% of Weapon Damage as ${conv.label}`
+    : `Deals ${pct}% of Weapon Damage, ${conv.pct}% converted to ${conv.label}`;
+  bump(report.missileLines, context, a);
+  return [{ t: 18, a }];
+}
+
+// Skills on the Static Field function (srvdofunc 20), such as Absolute Zero: calc1 is the
+// share of nearby enemies' current life dealt as the skill's element, and the radius is
+// aurarangecalc in game units (yards = units * 2/3, as the game's own Radius lines show).
+function percentLifeLines(row) {
+  if (row.srvdofunc !== '20' || !row.calc1) return [];
+  const label = DAMAGE_TEXT[row.EType] || 'Damage';
+  const out = [{ t: 13, a: `Deals %d%% of nearby enemies' current Life as ${label}`, x: 'clc1' }];
+  if (row.aurarangecalc) out.push({ t: 36, a: text('StrSkillRadiusSingular'), b: text('StrSkill18'), x: 'rng*2', y: '3' });
+  return out;
+}
+
 // Hand-written lines from skill-rules.json extraLines, for skills whose effect the data
 // doesn't describe anywhere: { skill, lines: [{ text, x, y }] } (text is a printf template).
 const extraLines = new Map((rules.extraLines || []).map(x => [x.skill.toLowerCase(), x.lines]));
+// Hand-written descriptions (skill-rules.json descriptions), for skills whose numbers depend on
+// other skills or on mechanics the data can't pin down: { skill (skills.txt name): text }.
+const descriptions = new Map(Object.entries(rules.descriptions || {}).filter(([k]) => !k.startsWith('$')).map(([k, v]) => [k.toLowerCase(), v]));
 
 const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const hidden = new Set((rules.hideSkills || []).map(s => s.toLowerCase()));
@@ -376,6 +466,7 @@ function entryFor(row, cls) {
   const desc = text(d['str long'] || d['str short'], name).replace(/\n(?=[a-z])/g, ' ');
   // Some descriptions just repeat the name ("Magic Mastery"); don't show those.
   if (desc && desc !== d['str long'] && desc.toLowerCase() !== name.toLowerCase()) e.d = desc;
+  if (descriptions.has(key)) e.d = descriptions.get(key);
   const ctx = `${name} (${row.skill})`;
   // In-game, the per-level desc lines read bottom-up (Mana Cost last); dsc2/dsc3 read top-down.
   const g = lines(d, 'dsc2', 5, ctx, key);
@@ -385,7 +476,10 @@ function entryFor(row, cls) {
     const extra = extraLines.get(key);
     if (extra) l.push(...extra.map(x => ({ t: x.y ? 74 : 13, a: x.text, x: x.x, ...(x.y ? { y: x.y } : {}) })));
     else l.push(...statLines(row, ctx));
-    if (!l.length) bump(report.noLines, ctx, e.d ? 'has a description' : 'no description');
+    if (!l.length) l.push(...percentLifeLines(row));
+    if (!l.length) l.push(...damageLines(row));
+    if (!l.length) g.push(...missileLines(row, ctx));
+    if (!l.length && !g.length) bump(report.noLines, ctx, e.d ? 'has a description' : 'no description');
   }
   if (g.length) e.g = g;
   if (l.length) e.l = l;
@@ -479,6 +573,12 @@ for (const ulvl of [1, MAX_LEVEL]) {
 
 for (const e of entries) report.classCounts.set(e.c, (report.classCounts.get(e.c) || 0) + 1);
 
+// Skills whose card would say nothing about what they do: no skilldesc lines, no description,
+// and nothing from the rules or the generic fallbacks. Not fatal; listed to be addressed later
+// (add extraLines, a descriptions entry, a generic rule, or hideSkills).
+const empty = entries.filter(e => !e.g && !e.l && !e.s && !e.d);
+for (const e of empty) bump(report.emptySkills, `${e.n} (${e.k})`, e.src ? `${e.src.length} source(s)` : e.c);
+
 const outClasses = classes.map(c => ({
   id: c.id, title: c.title,
   trees: c.trees.map((t, i) => ({ id: `${c.id}-tree-${i + 1}`, n: i + 1, title: t }))
@@ -523,11 +623,14 @@ ${reportTable('Skipped oskills', report.skippedOskills)}
 ${reportTable('Lines hidden by rule', report.hiddenLines)}
 ${reportTable('Lines built from the stats a skill grants (no skilldesc lines)', report.statLines)}
 ${reportTable('Granted stats with no description', report.undescribedStats)}
+${reportTable('Weapon-damage lines from the missile a skill fires (no skilldesc lines)', report.missileLines)}
 ${reportTable('Skills with no lines at all', report.noLines)}
+${reportTable('Skills that show nothing (no lines, no description) - to be addressed', report.emptySkills)}
 `;
 
 if (typeof args.report === 'string') fs.writeFileSync(path.resolve(ROOT, args.report), md);
 console.log(`skills: ${entries.length} skills (${other.length} other) -> ${path.relative(ROOT, OUT_FILE)} (${(json.length / 1024).toFixed(0)} KB)`);
+for (const e of empty) console.warn(`warning: ${e.n} (${e.k}) has no description or lines; add extraLines, a descriptions entry or hideSkills in skill-rules.json`);
 console.log(`  formula warnings: ${report.calcWarnings.size}, unknown line types: ${report.unknownLineTypes.size}, unresolved strings: ${report.unresolvedStrings.size}, unformatted lines: ${report.badText.size}`);
 
 if (args.strict && (report.unknownLineTypes.size || report.unresolvedStrings.size || report.badText.size)) {

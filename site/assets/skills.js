@@ -102,9 +102,9 @@
       s._name = norm(s.n);
       s._text = norm([
         s.n, cls ? cls.title : '', s._tree, s.d || '', (s.pre || []).join(' '),
-        s.pas ? 'passive' : '', s.aur ? 'aura' : '', s.c === 'other' ? 'oskill' : '',
+        s.pas ? 'passive' : '', s.aur ? 'aura' : '', s.c === 'other' ? 'oskill item skill' : '',
         lines.map(templateText).join(' '),
-        (s.src || []).map(function (x) { return x.k + ' ' + (x.n || ''); }).join(' ')
+        (s.src || []).map(function (x) { return x.k + ' ' + (x.n || '') + ' ' + (x.v || ''); }).join(' ')
       ].join(' '));
     });
   }
@@ -381,7 +381,7 @@
       c.general,
       s.l ? el('div', { class: 'sk-block' }, [c.levelHead, c.current]) : null,
       c.synergies ? el('div', { class: 'sk-block' }, [el(hSub, { class: 'sk-sub', text: 'Synergies and bonuses' }), c.synergies]) : null,
-      s.l || s.g ? c.scaling : null,
+      (s.l || []).concat(s.g || []).some(SkillCalc.usesCalc) ? c.scaling : null,
       s.src ? sources(s) : null
     ]);
     s._card = c;
@@ -409,13 +409,19 @@
     else c.tableBox.textContent = '';
   }
 
-  // Collapsed by default: some oskills come from dozens of items.
+  // Collapsed by default: some skills come from dozens of items.
   function sources(s) {
     var items = s.src.map(function (x) {
       if (x.k === 'Cube recipe') {
         return el('li', null, [
           el('a', { href: 'cube-recipes.html#q=' + encodeURIComponent(s.n), text: SOURCE_LABEL[x.k] }),
           x.c ? ' (' + x.c + ')' : null
+        ]);
+      }
+      if (x.k === 'Vessel of Souls') {
+        return el('li', null, [
+          el('a', { href: 'vessel-of-souls.html#q=' + encodeURIComponent(s.n), text: x.k }),
+          x.v ? el('span', { class: 'sk-src-lvl', text: ' (' + x.v + ')' }) : null
         ]);
       }
       return el('li', null, [
@@ -425,7 +431,7 @@
       ]);
     });
     var list = el('ul', { class: 'sk-sources' }, items);
-    var title = 'Granted as an oskill by ' + s.src.length + (s.src.length === 1 ? ' source' : ' sources');
+    var title = 'Granted by ' + s.src.length + (s.src.length === 1 ? ' item or recipe' : ' items and recipes');
     return el('details', { class: 'sk-details' }, [el('summary', { text: title }), list]);
   }
 

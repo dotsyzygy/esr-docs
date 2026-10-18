@@ -27,10 +27,21 @@
       "skill": "Bloodraven Charge Raven", "lines": [
         { "text": "Raven Damage: %d-%d", "x": "pnma", "y": "pxma" },
         { "text": "Attacks per Raven: %d", "x": "clc3" }
-      ] }
+      ] },
+    { "$comment": "calc1 = lvl; its missile uses the heal-nova function (pSrvDoFunc 29). Old docs: level = % of max life healed",
+      "skill": "Time Lapse", "lines": [{ "text": "Heals %d%% of maximum Life", "x": "clc1" }] },
+    { "$comment": "calc1 is 'num targets' in the data; the wildairs missile spawns fury missiles that fire immolationarrow, freezingarrow and lightningarrow",
+      "skill": "Wild Airs of the Elements", "lines": [{ "text": "Targets: %d", "x": "clc1" }] }
   ],
-  "oskillProperties": ["oskill"],
-  "hideSkills": [],
-  "otherTitle": "Other Skills (oskills)",
-  "otherIntro": "Skills that don't belong to a class tree, granted by items as oskills. Any class can use them."
+  "descriptions": {
+    "$comment": "From the old site's Mercenary and Oskill Information page, for skills whose numbers depend on other skills. Long Shot's data gives +5% damage per frame flown over 20 frames (+100%), the old page says up to +200%.",
+    "Dragon Fury Discharge": "When it procs, unleashes a fully charged Dragon Fury at the level you have learned (not the proc's level).",
+    "Execute Discharge": "When it procs, unleashes a fully charged Execute at the level you have learned (not the proc's level).",
+    "Wild Airs of the Elements": "A passive that periodically fires Immolation, Freezing and Lightning Arrows at nearby enemies.",
+    "Long Shot": "A missile that deals 100% weapon damage, and more the farther it flies."
+  },
+  "grantProperties": ["oskill", "att-skill", "hit-skill", "gethit-skill", "kill-skill", "death-skill", "levelup-skill", "cast-skill", "takedmg-skill", "charged", "aura"],
+  "hideSkills": ["Townportal Oskill"],
+  "otherTitle": "Item Skills",
+  "otherIntro": "Skills that don't belong to a class tree. Items grant them as oskills, as a chance to cast, as charges or as auras, so any class can use them."
 }

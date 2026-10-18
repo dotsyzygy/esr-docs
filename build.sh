@@ -90,7 +90,12 @@ step "Generate"
 # ---------------------------------------------------------------------------
 
 run_generator() { # <script> <report>
-  if node "scripts/$1" --esr="$ESR" --report="$2" --strict; then ok "$1 (report: $2)"; else fail "$1 (see $2)"; fi
+  # Lines a generator prints as "warning: ..." count as build warnings (not failures).
+  local out status
+  out=$(node "scripts/$1" --esr="$ESR" --report="$2" --strict 2>&1); status=$?
+  printf '%s\n' "$out" | grep -v '^warning: '
+  if [ "$status" = 0 ]; then ok "$1 (report: $2)"; else fail "$1 (see $2)"; fi
+  while IFS= read -r line; do warn "$1: ${line#warning: }"; done < <(printf '%s\n' "$out" | grep '^warning: ')
 }
 run_generator build-cube-recipes.mjs cube-report.md
 run_generator build-skills.mjs skills-report.md

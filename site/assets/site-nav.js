@@ -15,7 +15,7 @@
     },
     {
       href: 'skills.html', title: 'Skills',
-      description: 'Every class skill tree plus the oskills items grant, with values at any skill level and character level up to 110.'
+      description: 'Every class skill tree plus the skills items grant (oskills, chance to cast, charges), with values at any skill level and character level up to 110.'
     },
     {
       href: 'vessel-of-souls.html', title: 'Vessel of Souls',
