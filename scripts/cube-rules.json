@@ -376,17 +376,17 @@
     {
       "match": "^Vessel of Souls Tier (\\d)",
       "hide": true,
-      "why": "Covered by the old site page vessel_of_souls"
+      "why": "Has its own page: vessel-of-souls.html"
     },
     {
       "match": "^Vessel of Souls Transform",
       "hide": true,
-      "why": "Covered by the old site page vessel_of_souls"
+      "why": "Has its own page: vessel-of-souls.html"
     },
     {
       "match": "^Vessel of Souls",
       "hide": true,
-      "why": "Covered by the old site page vessel_of_souls"
+      "why": "Has its own page: vessel-of-souls.html"
     },
     {
       "match": "Rejuv Pot|potion upgrade",

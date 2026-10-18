@@ -15,6 +15,10 @@
     {
       href: 'skills.html', title: 'Skills',
       description: 'Every class skill tree plus the oskills items grant, with values at any skill level and character level up to 110.'
+    },
+    {
+      href: 'vessel-of-souls.html', title: 'Vessel of Souls',
+      description: 'The mythical amulet that consumes organs: every tier bonus and its soul cost, the weapon transforms and the anointments.'
     }
   ];
 

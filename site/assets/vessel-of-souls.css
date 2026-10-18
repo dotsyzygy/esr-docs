@@ -1,0 +1,123 @@
+/* Vessel of Souls page, styled after the old site's vessel_of_souls.htm: a dark red intro panel,
+   purple tier bands and two-column ingredient/result rows on near-black cells.
+   Tokens, header, nav and the shared ui- components are in site.css.
+   The old page's item colours are lightened where needed for WCAG 2.2 AA (>= 4.5:1 on
+   --vs-cell); colour is never the only signal, since every item is named. */
+
+:root {
+  --vs-intro: #300000;
+  --vs-band: #402040;
+  --vs-group: #2a1a2a;
+  --vs-cell: #101010;
+  --vs-orange: #ffa500;
+}
+
+.vs-name { color: var(--vs-orange); }
+
+.vs-intro {
+  background: var(--vs-intro);
+  border: 1px solid #5a1a1a;
+  border-radius: var(--esr-radius);
+  padding: 0.75rem 1.25rem;
+  margin: 0 0 1.25rem;
+  text-align: center;
+  font-size: 0.95rem;
+}
+.vs-intro p { margin: 0.35rem 0; }
+
+.vs-toolbar { grid-template-columns: minmax(14rem, 3fr) minmax(9rem, 1fr); }
+
+/* [Tier 1] [Tier 2] … */
+.vs-jump ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.75rem;
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+}
+.vs-jump a { display: inline-block; padding: 0.35rem 0.2rem; }
+
+/* tier sections */
+.vs-section { margin: 0 0 2rem; scroll-margin-top: 1rem; }
+.vs-band {
+  background: var(--vs-band);
+  border-radius: var(--esr-radius) var(--esr-radius) 0 0;
+  padding: 0.6rem 1rem 0.7rem;
+  text-align: center;
+}
+.vs-band h2 { margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--esr-text); }
+.vs-band p { margin: 0.25rem auto 0; max-width: 60rem; font-size: 0.9rem; }
+.vs-count { font-weight: 400; color: var(--esr-muted); font-size: 0.95rem; }
+.vs-need { color: var(--esr-muted); }
+
+.vs-group {
+  margin: 4px 0 0;
+  padding: 0.4rem 1rem;
+  background: var(--vs-group);
+  font-size: 1rem;
+  text-align: center;
+  scroll-margin-top: 1rem;
+}
+
+/* rows: two cells separated by thin black gaps, like the old table */
+.vs-rows { list-style: none; margin: 0; padding: 0; }
+.vs-row {
+  display: grid;
+  grid-template-columns: minmax(0, 35%) minmax(0, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+}
+.vs-cell {
+  background: var(--vs-cell);
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.vs-cell ul { list-style: none; margin: 0; padding: 0; }
+.vs-cell p { margin: 0; }
+.vs-out-name { font-weight: 600; }
+.vs-keeps { color: var(--esr-muted); }
+.vs-mods { color: var(--esr-mod); }
+.vs-cost { color: var(--esr-text); }
+.vs-cell .vs-notes { margin-top: 0.35rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem; }
+.vs-notes li {
+  font-size: 0.8rem;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--esr-border-strong);
+  color: var(--esr-muted);
+}
+.vs-outcomes .vs-inputs { font-weight: 600; }
+
+/* item colours from the old page (lightened for contrast) */
+.vs-c-red .vs-item { color: #ff5c5c; }
+.vs-c-orange .vs-item { color: var(--vs-orange); }
+.vs-c-lightgray .vs-item { color: #d3d3d3; }
+.vs-c-gold .vs-item { color: #ffd700; }
+.vs-c-yellow .vs-item { color: #ffff66; }
+.vs-c-green .vs-item { color: #4cd964; }
+.vs-c-purple .vs-item { color: #c792ea; }
+.vs-c-blue .vs-item { color: #8fa8ff; }
+.vs-c-white .vs-item { color: #ffffff; }
+.vs-c-gray .vs-item { color: #a9a9a9; }
+.vs-c-skull .vs-item { color: #bdb76b; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .vs-toolbar { grid-template-columns: 1fr; }
+  /* stacked: keep each recipe's two cells together and space recipes apart */
+  .vs-row { grid-template-columns: 1fr; gap: 1px; margin-top: 0.85rem; }
+}

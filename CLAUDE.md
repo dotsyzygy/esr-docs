@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Docs site for the Eastern Sun Resurrected (ESR) Diablo II Resurrected mod. The site is generated from the mod's game data and deployed to GitHub Pages at https://dotsyzygy.github.io/esr-docs/. So far it has a home page and two docs pages, Cube Recipes and Skills. Other pages from the old site will be migrated in over time.
+Docs site for the Eastern Sun Resurrected (ESR) Diablo II Resurrected mod. The site is generated from the mod's game data and deployed to GitHub Pages at https://dotsyzygy.github.io/esr-docs/. So far it has a home page and three docs pages: Cube Recipes, Skills and Vessel of Souls. Other pages from the old site will be migrated in over time.
 
 ## Hard rules
 
@@ -14,18 +14,22 @@ Docs site for the Eastern Sun Resurrected (ESR) Diablo II Resurrected mod. The s
 
 ```
 scripts/lib/game-data.mjs        shared loading: args, game repo paths, TSV, strings, report tables
+scripts/lib/cube-resolve.mjs     shared cubemain resolver: items, inputs/outputs, mods, conditions (cube + vessel)
 scripts/build-cube-recipes.mjs   cube generator (Node 18+, no dependencies)
 scripts/cube-rules.json          every cube presentation decision (see below)
 scripts/build-skills.mjs         skills generator
 scripts/skill-rules.json         skills presentation decisions (see below)
+scripts/build-vessel.mjs         Vessel of Souls generator (cubemain rows, via cube-resolve)
+scripts/vessel-rules.json        vessel tiers, limits, colours and texts (see below)
 build.sh                         local build + checks (see Commands)
 site/index.html                  home page: intro + a card per page (assets/home.css)
 site/cube-recipes.html           cube page
 site/skills.html                 skills page
+site/vessel-of-souls.html        Vessel of Souls page (styled after the old vessel_of_souls.htm)
 site/assets/site.css             shared tokens, header, nav, .page and ui-* components
 site/assets/site-nav.js          the nav bar and home page cards, from one PAGES list
-site/assets/                     cube-recipes.js/.css; skills.js/.css; skill-calc.js (formula evaluator); icon
-site/data/                       GENERATED, gitignored (cube-recipes.enUS.js, skills.enUS.js)
+site/assets/                     cube-recipes.js/.css; skills.js/.css; vessel-of-souls.js/.css; home.css; skill-calc.js (formula evaluator); icon
+site/data/                       GENERATED, gitignored (cube-recipes.enUS.js, skills.enUS.js, vessel-of-souls.enUS.js)
 .github/workflows/deploy.yml     build + deploy to Pages
 ```
 
@@ -40,9 +44,10 @@ node scripts/build-cube-recipes.mjs --report=cube-report.md          # reads ../
 node scripts/build-cube-recipes.mjs --esr=<path> --report=cube-report.md
 node scripts/build-cube-recipes.mjs --strict                         # fail on unresolved/uncategorized
 node scripts/build-skills.mjs --report=skills-report.md              # same --esr/--strict options
+node scripts/build-vessel.mjs --report=vessel-report.md              # same --esr/--strict options
 ```
 
-In VS Code, F5 ("Docs: build and open", `.vscode/launch.json`) runs the "Build docs" task (`build.sh --no-open` via Git Bash) and opens `site/index.html` in Chrome or Edge; Ctrl+Shift+B runs just the build. `build.sh` fails if a generator's `--strict` check fails, a script has a syntax error, a data file doesn't load, or a page references a missing local file, lacks the nav or is missing from `PAGES`. It only warns when a repo is behind its remote. Preview by opening `site/index.html` (or any page) directly in a browser; it works over `file://`. After any rules or generator change, rebuild and check `cube-report.md`. The goal is 0 uncategorized rows and 0 unresolved tokens. A few unresolved internal properties are expected. For skills, check `skills-report.md`: the goal is 0 formula warnings, unknown line types, unresolved strings and unformatted lines.
+In VS Code, F5 ("Docs: build and open", `.vscode/launch.json`) runs the "Build docs" task (`build.sh --no-open` via Git Bash) and opens `site/index.html` in Chrome or Edge; Ctrl+Shift+B runs just the build. `build.sh` fails if a generator's `--strict` check fails, a script has a syntax error, a data file doesn't load, or a page references a missing local file, lacks the nav or is missing from `PAGES`. It only warns when a repo is behind its remote. Preview by opening `site/index.html` (or any page) directly in a browser; it works over `file://`. After any rules or generator change, rebuild and check `cube-report.md`. The goal is 0 uncategorized rows and 0 unresolved tokens. A few unresolved internal properties are expected. For skills, check `skills-report.md`: the goal is 0 formula warnings, unknown line types, unresolved strings and unformatted lines. For the vessel, `vessel-report.md`: 0 unresolved tokens/properties and 0 usage limits that match no recipe.
 
 For visual checks, headless Chrome works:
 `"/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --screenshot=<out.png> --window-size=1300,1500 --virtual-time-budget=8000 "file:///C:/dev/repos/esr-docs/site/cube-recipes.html#q=khalim"`
@@ -82,13 +87,27 @@ Headless Chrome won't go below ~500px wide; to check phone width, load the page 
 - `hideLines`: `{ skill, match }` drops a line that references a string or missile missing from the game data; listed in the report.
 - `stats`, `baseSkills`, `hideSkills`, `defaultSkillLevel` (20), `defaultCharacterLevel` (110), `maxLevel` (110), `pageNotes`, `otherTitle`/`otherIntro`.
 
+## How the Vessel of Souls generator works
+
+- It reads the vessel rows of `cubemain.txt` (hidden from the cube page) and resolves them with `lib/cube-resolve.mjs` + `cube-rules.json`, so items and mod wording match the Cube Recipes page.
+- **Pairs merge:** each recipe has a `souls > N` row (op 15) and a `souls = N` row (op 18, which also adds the "tier exhausted" flavor text). With the bookkeeping mods hidden (`hiddenMods`: soul counter, flavor text, …) they merge into one recipe that needs "at least N souls". Op 18 alone means "exactly N" (0 = "All souls used").
+- **Costs** come from the `soul-counter` mod. A section header shows the most common cost and soul requirement, and recipes show only the exceptions (tier 4 always shows its cost).
+- **Trap rows** are hidden: "Tier N - Trap" rows lock a tier until the previous one is done; "Transform … Anoint Trap" rows block transforms while an anointment is pending. "… max N trap" rows become a "Can be applied up to N times" note on the recipe with the same key (`tierN - <stat>`, with a trailing digit dropped, e.g. `cast2` → `cast`).
+- The starting souls come from the vessel's `uniqueitems.txt` row (`soul-counter`).
+
+## vessel-rules.json
+
+- `rules`: regexes on `description`, first match wins: `hide`, `limit`/`times`, or `section` (+ `group`, `outcome` for anointment names).
+- `sections` (ids `tier1`–`tier4`, `completion` keep the old page's anchors; plus `anointments`) with intros (`{cost}` = the tier's common cost, `{souls}` = starting souls), `groupTitles` for tier 1's trigger types, `intro` paragraphs, `conditionText`/`limitText`.
+- `itemColors`: input code → the old page's colour (Heart red, Tail orange, Soul blue, …); the CSS lightens them for AA contrast. Items are always named, so colour is never the only signal.
+
 ## Content decisions already made
 
 - **Hidden:**
   - internal plumbing: `Trap` rows, test rows, "Check if already", the per-outcome rows for corruptions, anointments and sanctification, multi-input stocker combos, `OLD` rows
   - Gem Cans and Crystal Cans
   - portals
-  - **Kill Ledger, Ascendancy and Vessel of Souls**, which have their own pages
+  - **Kill Ledger, Ascendancy and Vessel of Souls**, which have (or will have) their own pages; Vessel of Souls is now `vessel-of-souls.html`
 - **Kept:** Secret recipes (they were public on the old page) and the player-facing "Corrupt / Anoint / Sanctify an item" steps.
 - **Categories** keep the old page's anchor ids (`#sec`, `#dst`, `#for`, …) and section intros.
 
@@ -105,4 +124,4 @@ Pages share `site.css` and the nav from `site-nav.js`: to add a page, add it to 
 
 ## Deployment
 
-`deploy.yml` runs on push to `main`, on manual dispatch, and every 30 minutes. The scheduled run compares the game repo's `main` SHA (via `git ls-remote`) with `esrCommit` in the live `build-info.json`, and only builds when they differ. The build sparse-checks-out just `excel/` and `strings/` from the game repo and runs both generators. The workflow uses Node 24 and the latest major versions of the Pages actions. GitHub pauses scheduled workflows in repos with no activity for 60 days; re-enable it from the Actions tab if the docs stop updating.
+`deploy.yml` runs on push to `main`, on manual dispatch, and every 30 minutes. The scheduled run compares the game repo's `main` SHA (via `git ls-remote`) with `esrCommit` in the live `build-info.json`, and only builds when they differ. The build sparse-checks-out just `excel/` and `strings/` from the game repo and runs all three generators. The workflow uses Node 24 and the latest major versions of the Pages actions. GitHub pauses scheduled workflows in repos with no activity for 60 days; re-enable it from the Actions tab if the docs stop updating.

@@ -10,7 +10,7 @@
 # Steps: check both repos are current with their remotes (warns, or pulls with --pull),
 # run both generators in --strict mode, then check the site: script syntax, generated data,
 # and that every local file a page references exists. Reports are written to
-# cube-report.md and skills-report.md. Exits non-zero on any failure.
+# cube-report.md, skills-report.md and vessel-report.md. Exits non-zero on any failure.
 
 set -euo pipefail
 
@@ -94,6 +94,7 @@ run_generator() { # <script> <report>
 }
 run_generator build-cube-recipes.mjs cube-report.md
 run_generator build-skills.mjs skills-report.md
+run_generator build-vessel.mjs vessel-report.md
 
 # ---------------------------------------------------------------------------
 step "Check site"
@@ -114,7 +115,7 @@ done
 # Every generated data file loads and defines its global.
 node - <<'EOF' || FAILURES=$((FAILURES + 1))
 const fs = require('fs'), vm = require('vm');
-const checks = { 'site/data/cube-recipes.enUS.js': 'ESR_CUBE_DATA', 'site/data/skills.enUS.js': 'ESR_SKILL_DATA' };
+const checks = { 'site/data/cube-recipes.enUS.js': 'ESR_CUBE_DATA', 'site/data/skills.enUS.js': 'ESR_SKILL_DATA', 'site/data/vessel-of-souls.enUS.js': 'ESR_VESSEL_DATA' };
 let bad = 0;
 for (const [file, name] of Object.entries(checks)) {
   const sandbox = { window: {} };

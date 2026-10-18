@@ -1,0 +1,57 @@
+{
+  "$comment": "Rules for scripts/build-vessel.mjs. 'rules' are matched in order against cubemain.txt 'description' (case-insensitive regex); the first match wins. A rule either hides the row, records a usage limit ('limit' key + 'times', from the '… max N trap' rows), or puts the row in a 'section' (optionally a 'group'; $1… come from the match). Each recipe appears as a pair of rows (souls > N and souls = N); they merge into one recipe that needs at least N souls. Mod wording comes from scripts/cube-rules.json so it matches the Cube Recipes page.",
+  "intro": [
+    "Vessel of Souls is a special mythical unique amulet that consumes organs in the Horadric Cube to gain bonuses based on the organs used. It starts with {souls} souls, and every recipe consumes some of them.",
+    "There are four tiers of bonuses. Each tier must be completed before the next one opens (e.g. tier 3 recipes don't work until tiers 1 and 2 are done). Every tier holds 5 recipes, except tier 4, which works differently. The item shows a special orange text when a tier is exhausted.",
+    "Once all souls are used, the Vessel of Souls can be transformed into one of several mythical weapon bases, keeping every bonus applied.",
+    "Vessel of Souls is the only equippable unique item that can be anointed. It can't be corrupted while it has unconsumed souls, and it can't be worn as an amulet: it has to be transformed into a weapon first."
+  ],
+  "sections": [
+    { "id": "tier1", "title": "Tier 1", "intro": "Adds a chance to cast a skill. Each tier 1 recipe consumes {cost} souls per use unless stated otherwise." },
+    { "id": "tier2", "title": "Tier 2", "intro": "Each tier 2 recipe consumes {cost} souls per use." },
+    { "id": "tier3", "title": "Tier 3", "intro": "Each tier 3 recipe consumes {cost} souls per use." },
+    { "id": "tier4", "title": "Tier 4", "intro": "Tier 4 is special compared to the other tiers: recipes here have varying soul costs, and some need an exact number of souls left." },
+    { "id": "anointments", "title": "Weapon Anointments", "intro": "The tier 4 anointment recipe gives the Vessel one of these at random." },
+    { "id": "completion", "title": "Completion", "intro": "After all souls are used, transform the Vessel of Souls into a mythical weapon base. It keeps every applied bonus, can be worn without restrictions, loses its flavor text and gains triple the usual tinkering points. It can't be transformed while an anointment is pending." }
+  ],
+  "groupTitles": {
+    "att-skill": "Chance to Cast When You Attack",
+    "cast-skill": "Chance to Cast When You Cast",
+    "hit-skill": "Chance to Cast on Striking",
+    "kill-skill": "Chance to Cast When You Kill an Enemy"
+  },
+  "rules": [
+    { "match": "^Vessel of Souls Tier \\d+ - Trap( \\d+)?$", "hide": true, "why": "locks a tier until the previous tier is complete" },
+    { "match": "^Vessel of Souls Tier (\\d+) - (.+?)\\d* max (\\d+) trap$", "limit": "tier$1 - $2", "times": "$3" },
+    { "match": "^Vessel of Souls Tier 1 - ([a-z]+-skill)", "section": "tier1", "group": "$1" },
+    { "match": "^Vessel of Souls Tier (\\d+) - ", "section": "tier$1" },
+    { "match": "^Vessel of Souls Transform to .+ Trap$", "hide": true, "why": "blocks the transform while an anointment is pending" },
+    { "match": "^Vessel of Souls Transform to ", "section": "completion" },
+    { "match": "^Anointment - Vessel of Souls \\d+ \\((.+)\\)$", "section": "anointments", "outcome": "$1" },
+    { "match": "^Prevent Vessel of Souls Corrupt", "hide": true, "why": "explained in the intro" }
+  ],
+  "hiddenMods": ["soul-counter", "mythicaldesc", "anointed_dummy", "anointed", "unusable-item", "noconsume", "crossbow-passive"],
+  "soulStat": "soul_counter",
+  "conditionText": {
+    "$comment": "{souls} is '1 soul' / 'N souls'; 'none' replaces 'exactly' when no souls may be left.",
+    "atLeast": "At least {souls} left",
+    "exactly": "Exactly {souls} left",
+    "moreThan": "More than {souls} left",
+    "none": "All souls used"
+  },
+  "limitText": { "1": "Can only be applied once", "default": "Can be applied up to {times} times" },
+  "itemColors": {
+    "$comment": "Input item code -> colour class, as on the old page (vs-c-<name> in vessel-of-souls.css).",
+    "hrt": "red", "brz": "red", "flg": "red",
+    "tal": "orange",
+    "qll": "lightgray", "fng": "lightgray",
+    "jaw": "gold",
+    "eyz": "yellow",
+    "hrn": "green", "scz": "green",
+    "spe": "purple",
+    "sol": "blue",
+    "um7": "purple",
+    "Vessel of Souls": "orange",
+    "gpw": "white", "gpk": "gray", "gpv": "purple", "gpb": "blue", "gpr": "red", "gpg": "green", "gpy": "yellow", "skz": "skull"
+  }
+}
