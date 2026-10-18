@@ -77,10 +77,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout docs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Checkout game data (excel + strings only)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.ESR_REPO }}
           ref: ${{ needs.check.outputs.esr_sha }}
@@ -91,9 +91,9 @@ jobs:
             Eastern_Sun_Resurrected.mpq/data/local/lng/strings
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Generate cube recipe data
         run: node scripts/build-cube-recipes.mjs --esr=esr --report=cube-report.md
