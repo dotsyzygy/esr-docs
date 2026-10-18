@@ -366,8 +366,14 @@
     var text = fmt ? fmt(l, a, b) : sprintf(l.a, [a, b]);
     // The game fills the placeholders in stored order, then draws the lines bottom up.
     text = text.split('\n').reverse().join('\n');
-    // Some strings omit the space after a label ("Attack Rating:75").
-    return text.replace(/:(?=[+\-]?\d)/g, ': ').replace(/[ \t]+/g, ' ').trim();
+    // Some strings omit the space after a label ("Attack Rating:75"). StrSkill23 is " percent",
+    // and its leading space is lost when strings are trimmed: "0percent" -> "0%".
+    text = text.replace(/:(?=[+\-]?\d)/g, ': ')
+      .replace(/(\d) ?percent ?/gi, '$1% ')
+      .replace(/[ \t]+/g, ' ').trim();
+    // A percentage that comes out as 0 ("Resist Magic: 0%") says nothing; hide the line.
+    if (/(^|[^\d.])[+\-]?0%/.test(text)) return null;
+    return text;
   };
 
   // Does the line's text change with skill level (or character level)? Static text never does.

@@ -382,7 +382,7 @@
       s.l ? el('div', { class: 'sk-block' }, [c.levelHead, c.current]) : null,
       c.synergies ? el('div', { class: 'sk-block' }, [el(hSub, { class: 'sk-sub', text: 'Synergies and bonuses' }), c.synergies]) : null,
       s.l || s.g ? c.scaling : null,
-      s.src ? sources(s, other, hSub) : null
+      s.src ? sources(s) : null
     ]);
     s._card = c;
     return c;
@@ -409,7 +409,8 @@
     else c.tableBox.textContent = '';
   }
 
-  function sources(s, open, hSub) {
+  // Collapsed by default: some oskills come from dozens of items.
+  function sources(s) {
     var items = s.src.map(function (x) {
       if (x.k === 'Cube recipe') {
         return el('li', null, [
@@ -425,7 +426,6 @@
     });
     var list = el('ul', { class: 'sk-sources' }, items);
     var title = 'Granted as an oskill by ' + s.src.length + (s.src.length === 1 ? ' source' : ' sources');
-    if (open) return el('div', { class: 'sk-block' }, [el(hSub, { class: 'sk-sub', text: title }), list]);
     return el('details', { class: 'sk-details' }, [el('summary', { text: title }), list]);
   }
 
