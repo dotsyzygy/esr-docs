@@ -1,0 +1,27 @@
+/* Home page. Tokens, header, nav and the shared ui- components are in site.css. */
+
+.home-intro { max-width: 46rem; margin: 0 0 1.5rem; font-size: 1.05rem; }
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: 1rem;
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+}
+.home-card {
+  position: relative;
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-top: 3px solid var(--esr-accent);
+  border-radius: var(--esr-radius);
+  padding: 1rem 1.15rem 1.1rem;
+}
+.home-card:hover, .home-card:focus-within { border-color: var(--esr-border-strong); border-top-color: var(--esr-focus); }
+.home-card h3 { margin: 0 0 0.4rem; font-family: var(--esr-serif); font-size: 1.35rem; }
+.home-card h3 a { color: var(--esr-accent); text-decoration: none; }
+/* The whole card is clickable; the link text stays the accessible name. */
+.home-card h3 a::after { content: ""; position: absolute; inset: 0; }
+.home-card h3 a:hover { text-decoration: underline; }
+.home-card p { margin: 0; color: var(--esr-text); }

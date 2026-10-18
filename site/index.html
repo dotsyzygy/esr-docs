@@ -4,14 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Eastern Sun Resurrected Docs</title>
-  <meta http-equiv="refresh" content="0; url=cube-recipes.html">
-  <link rel="canonical" href="cube-recipes.html">
-  <style>
-    body { background: #000; color: #ece6dc; font: 1rem/1.5 "Segoe UI", system-ui, sans-serif; padding: 2rem; }
-    a { color: #f7c27a; }
-  </style>
+  <meta name="description" content="Reference docs for the Eastern Sun Resurrected mod for Diablo II Resurrected, generated from the mod's game data.">
+  <link rel="icon" href="assets/esricon.png" type="image/png">
+  <link rel="stylesheet" href="assets/site.css">
+  <link rel="stylesheet" href="assets/home.css">
 </head>
 <body>
-  <p>Redirecting to <a href="cube-recipes.html">Cube Recipes</a>…</p>
+  <header class="site-header">
+    <h1 class="site-name">Eastern Sun Resurrected</h1>
+    <p class="site-tagline">Total Conversion Mod for Diablo II Resurrected</p>
+    <nav id="site-nav" class="site-nav" aria-label="Docs pages"></nav>
+    <script src="assets/site-nav.js"></script>
+  </header>
+
+  <main class="page home">
+    <h2 class="ui-title">Docs</h2>
+    <p class="home-intro">Reference pages for Eastern Sun Resurrected. They're generated straight from the mod's game data, so they stay current with each patch.</p>
+
+    <ul id="site-pages" class="home-cards" aria-label="Pages"></ul>
+    <noscript>
+      <ul class="home-cards">
+        <li class="home-card"><h3><a href="cube-recipes.html">Cube Recipes</a></h3></li>
+        <li class="home-card"><h3><a href="skills.html">Skills</a></h3></li>
+      </ul>
+    </noscript>
+
+    <p id="build-info" class="ui-meta" hidden></p>
+  </main>
+
+  <script>
+    // Which game data the live site was built from (build-info.json is written by the deploy workflow).
+    (function () {
+      var out = document.getElementById('build-info');
+      if (!window.fetch || location.protocol === 'file:') return;
+      fetch('build-info.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (info) {
+        if (!info || !info.esrCommit) return;
+        var when = info.builtAt ? new Date(info.builtAt).toLocaleString() : '';
+        out.textContent = 'Built from game data ' + info.esrCommit.slice(0, 7) + (when ? ' on ' + when : '') + '.';
+        out.hidden = false;
+      }).catch(function () {});
+    })();
+  </script>
 </body>
 </html>

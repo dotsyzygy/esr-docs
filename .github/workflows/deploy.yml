@@ -98,6 +98,9 @@ jobs:
       - name: Generate cube recipe data
         run: node scripts/build-cube-recipes.mjs --esr=esr --report=cube-report.md
 
+      - name: Generate skill data
+        run: node scripts/build-skills.mjs --esr=esr --report=skills-report.md
+
       - name: Record build info
         env:
           ESR_SHA: ${{ needs.check.outputs.esr_sha }}
@@ -108,6 +111,8 @@ jobs:
             echo "Built from game data [\`${ESR_SHA:0:7}\`](https://github.com/$ESR_REPO/commit/$ESR_SHA)."
             echo
             cat cube-report.md
+            echo
+            cat skills-report.md
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Setup Pages

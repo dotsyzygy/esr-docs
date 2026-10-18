@@ -1,0 +1,27 @@
+{
+  "$comment": "Rules for scripts/build-skills.mjs. Values on the page are for an unequipped character with no points in other skills; 'stats' sets the stat('…'.accr) values that are not 0 on such a character, and 'baseSkills' are the skills every character has at level 1.",
+  "pageNotes": [
+    "Values assume no items and no points in other skills. Bonuses from synergies are listed under each skill and are not included in the numbers.",
+    "Pick a skill level and character level to see the values the game would show. Some skills scale with character level as well as skill level."
+  ],
+  "maxLevel": 110,
+  "defaultSkillLevel": 20,
+  "defaultCharacterLevel": 110,
+  "baseSkills": ["Attack", "Kick", "Throw", "Unsummon", "Left Hand Throw", "Left Hand Swing"],
+  "stats": {},
+  "tokenAliases": {
+    "$comment": "Formula tokens: a string renames a token (fixes typos in the data), a number pins its value.",
+    "me3o": "m3eo",
+    "me3y": "m3ey",
+    "mael": 0
+  },
+  "hideLines": [
+    { "skill": "Plague Javelin", "match": "^Instant Poison Damage", "$comment": "uses missile plaguejavsplash, which missiles.txt doesn't have" },
+    { "skill": "Bind Demon", "match": "^StrSkillManaCostPerSecond$", "$comment": "string missing from the game data" },
+    { "skill": "Fire Whirlwind", "match": "^physicaldamagewhilewwdesc$", "$comment": "string missing from the game data" }
+  ],
+  "oskillProperties": ["oskill"],
+  "hideSkills": [],
+  "otherTitle": "Other Skills (oskills)",
+  "otherIntro": "Skills that don't belong to a class tree, granted by items as oskills. Any class can use them."
+}

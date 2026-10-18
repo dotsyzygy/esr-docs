@@ -1,0 +1,26 @@
+{
+  // F5: build the docs with ./build.sh, then open the home page in a browser with the debugger attached.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Docs: build and open (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "file": "${workspaceFolder}/site/index.html",
+      "preLaunchTask": "Build docs"
+    },
+    {
+      "name": "Docs: build and open (Edge)",
+      "type": "msedge",
+      "request": "launch",
+      "file": "${workspaceFolder}/site/index.html",
+      "preLaunchTask": "Build docs"
+    },
+    {
+      "name": "Docs: open without building (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "file": "${workspaceFolder}/site/index.html"
+    }
+  ]
+}

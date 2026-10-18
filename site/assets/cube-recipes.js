@@ -137,34 +137,34 @@
     ui.quality = el('select', { id: 'cr-quality' }, qualityOptions);
     ui.cls = el('select', { id: 'cr-class' }, classOptions);
     ui.status = el('p', { id: 'cr-status-text', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' });
-    ui.reset = el('button', { type: 'button', class: 'cr-btn', text: 'Clear filters' });
+    ui.reset = el('button', { type: 'button', class: 'ui-btn', text: 'Clear filters' });
     ui.results = el('div', { id: 'cr-results' });
     ui.toc = el('ul');
 
     var notes = (data.notes || []).length
-      ? el('ul', { class: 'cr-notes', 'aria-label': 'General notes' },
+      ? el('ul', { class: 'ui-notes', 'aria-label': 'General notes' },
           data.notes.map(function (n) { return el('li', { text: n }); }))
       : null;
 
     newEl.textContent = '';
-    newEl.appendChild(el('a', { class: 'cr-skip', href: '#cr-search', text: 'Skip to recipe search' }));
-    newEl.appendChild(el('h2', { class: 'cr-title', text: 'Cube Recipes' }));
+    newEl.appendChild(el('a', { class: 'ui-skip', href: '#cr-search', text: 'Skip to recipe search' }));
+    newEl.appendChild(el('h2', { class: 'ui-title', text: 'Cube Recipes' }));
     newEl.appendChild(el('p', {
-      class: 'cr-meta',
+      class: 'ui-meta',
       text: 'Generated from the mod’s cube recipe data on ' + generated.toLocaleDateString() + '.'
     }));
     if (notes) newEl.appendChild(notes);
-    newEl.appendChild(el('div', { class: 'cr-toolbar', role: 'search', 'aria-label': 'Filter recipes' }, [
-      el('div', { class: 'cr-field' }, [
+    newEl.appendChild(el('div', { class: 'ui-toolbar', role: 'search', 'aria-label': 'Filter recipes' }, [
+      el('div', { class: 'ui-field' }, [
         el('label', { for: 'cr-search' }, ['Search recipes', el('kbd', { 'aria-hidden': 'true', text: '/' })]),
         ui.search
       ]),
-      el('div', { class: 'cr-field' }, [el('label', { for: 'cr-cat', text: 'Category' }), ui.cat]),
-      el('div', { class: 'cr-field' }, [el('label', { for: 'cr-quality', text: 'Item quality' }), ui.quality]),
-      el('div', { class: 'cr-field' }, [el('label', { for: 'cr-class', text: 'Usable by class' }), ui.cls])
+      el('div', { class: 'ui-field' }, [el('label', { for: 'cr-cat', text: 'Category' }), ui.cat]),
+      el('div', { class: 'ui-field' }, [el('label', { for: 'cr-quality', text: 'Item quality' }), ui.quality]),
+      el('div', { class: 'ui-field' }, [el('label', { for: 'cr-class', text: 'Usable by class' }), ui.cls])
     ]));
-    newEl.appendChild(el('div', { class: 'cr-status' }, [ui.status, ui.reset]));
-    newEl.appendChild(el('details', { class: 'cr-toc', open: true }, [
+    newEl.appendChild(el('div', { class: 'ui-status' }, [ui.status, ui.reset]));
+    newEl.appendChild(el('details', { class: 'ui-toc', open: true }, [
       el('summary', { text: 'Jump to category' }),
       el('nav', { 'aria-label': 'Recipe categories' }, [ui.toc])
     ]));
@@ -240,9 +240,9 @@
         var matches = matchVariants(g);
         if (!matches.length) return;
         if (!section) {
-          section = el('section', { class: 'cr-section', id: cat.id, 'aria-labelledby': 'h-' + cat.id }, [
+          section = el('section', { class: 'ui-section', id: cat.id, 'aria-labelledby': 'h-' + cat.id }, [
             el('h2', { id: 'h-' + cat.id, text: cat.title }),
-            cat.intro ? el('p', { class: 'cr-intro', html: cat.intro }) : null
+            cat.intro ? el('p', { class: 'ui-intro', html: cat.intro }) : null
           ]);
           list = section;
         }
@@ -255,7 +255,7 @@
         totalVariants += count;
         tocFrag.appendChild(el('li', null, [
           el('a', { href: '#' + cat.id, text: cat.title }), ' ',
-          el('span', { class: 'cr-count', text: '(' + count + ')' })
+          el('span', { class: 'ui-count', text: '(' + count + ')' })
         ]));
       }
     });
@@ -263,7 +263,7 @@
     ui.results.textContent = '';
     ui.toc.textContent = '';
     if (!totalGroups) {
-      ui.results.appendChild(el('p', { class: 'cr-empty', text: 'No recipes match these filters.' }));
+      ui.results.appendChild(el('p', { class: 'ui-empty', text: 'No recipes match these filters.' }));
     } else {
       ui.results.appendChild(frag);
       ui.toc.appendChild(tocFrag);
@@ -294,7 +294,7 @@
 
     if (shown < matches.length) {
       var more = el('div', { class: 'cr-more' });
-      var btn = el('button', { type: 'button', class: 'cr-btn', 'aria-controls': list.id });
+      var btn = el('button', { type: 'button', class: 'ui-btn', 'aria-controls': list.id });
       var setLabel = function () {
         var left = matches.length - shown;
         btn.textContent = 'Show ' + Math.min(left, MORE_STEP) + ' more' + (left > MORE_STEP ? ' (' + left + ' remaining)' : '');
@@ -382,8 +382,8 @@
     renderNewView();
   } else {
     newEl.textContent = '';
-    newEl.appendChild(el('h2', { class: 'cr-title', text: 'Cube Recipes' }));
-    newEl.appendChild(el('p', { class: 'cr-missing' }, [
+    newEl.appendChild(el('h2', { class: 'ui-title', text: 'Cube Recipes' }));
+    newEl.appendChild(el('p', { class: 'ui-missing' }, [
       'Recipe data has not been generated. Run ',
       el('code', { text: 'node scripts/build-cube-recipes.mjs' }),
       ' and reload.'

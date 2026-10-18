@@ -1,0 +1,136 @@
+/* Skills page. Tokens, header, nav and the shared ui- components are in site.css.
+   Colour pairs are chosen for WCAG 2.2 AA (>= 4.5:1 for text on --esr-surface
+   and --esr-bg, >= 3:1 for borders/focus on interactive controls). */
+
+.sk-tree-title {
+  font-family: var(--esr-serif);
+  font-size: 1.2rem;
+  color: var(--esr-text);
+  margin: 1.25rem 0 0.6rem;
+  scroll-margin-top: 7rem;
+}
+
+.ui-toc .sk-toc-trees {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  font-size: 0.9rem;
+  columns: auto;
+}
+
+/* cards: two columns on wide screens; a card with an open table takes the full row */
+.sk-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.sk-skill {
+  min-width: 0;
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-radius: var(--esr-radius);
+  padding: 0.75rem 1rem 0.85rem;
+  scroll-margin-top: 7rem;
+}
+.sk-skill:has(.sk-scaling[open]) { grid-column: 1 / -1; }
+
+.sk-skill > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.75rem;
+}
+.sk-skill > header h3, .sk-skill > header h4 { margin: 0; font-size: 1.125rem; color: var(--esr-accent); }
+.sk-skill > header a { color: inherit; text-decoration: none; }
+.sk-skill > header a:hover, .sk-skill > header a:focus-visible { text-decoration: underline; }
+.sk-where { margin: 0; font-size: 0.875rem; color: var(--esr-muted); }
+
+.sk-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+}
+.sk-tags li {
+  font-size: 0.85rem;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--esr-border-strong);
+  background: var(--esr-surface-2);
+}
+
+.sk-desc { margin: 0.6rem 0 0; }
+
+.sk-block { margin-top: 0.65rem; }
+.sk-sub {
+  margin: 0 0 0.2rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--esr-muted);
+}
+.sk-lines { list-style: none; margin: 0; padding: 0; }
+.sk-lines li + li { margin-top: 0.15rem; }
+.sk-general { margin-top: 0.6rem; color: var(--esr-muted); }
+.sk-block > .sk-lines:not(.sk-synergies) { color: var(--esr-mod); }
+.sk-line-head { font-weight: 600; }
+
+.sk-details { margin-top: 0.65rem; }
+.sk-details > summary {
+  cursor: pointer;
+  min-height: 2.25rem;
+  padding: 0.3rem 0;
+  font-weight: 600;
+  color: var(--esr-link);
+}
+.sk-details > summary:hover { color: var(--esr-focus); }
+
+.sk-sources { margin: 0.1rem 0 0; padding: 0 0 0 1.25rem; }
+.sk-sources li + li { margin-top: 0.15rem; }
+.sk-src-kind, .sk-src-lvl { color: var(--esr-muted); }
+.sk-src-name { font-weight: 600; }
+
+/* level table */
+.sk-table-wrap {
+  max-width: 100%;
+  max-height: 32rem;
+  overflow: auto;
+  border: 1px solid var(--esr-border);
+  border-radius: var(--esr-radius);
+}
+.sk-table { border-collapse: collapse; font-size: 0.9rem; min-width: 100%; }
+.sk-table th, .sk-table td {
+  padding: 0.3rem 0.65rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--esr-border);
+}
+.sk-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--esr-surface-2);
+  color: var(--esr-text);
+  white-space: normal;
+  min-width: 6rem;
+  vertical-align: bottom;
+}
+.sk-table tbody th { color: var(--esr-muted); font-weight: 600; }
+.sk-table tbody tr:nth-child(even) { background: #1a1510; }
+.sk-table tr.sk-cur { background: #3a2a14; outline: 1px solid var(--esr-accent); }
+.sk-table tr.sk-cur th { color: var(--esr-text); }
+.sk-cur-label { font-weight: 400; font-size: 0.8rem; }
+.sk-rows-btn { margin-top: 0.5rem; }
+.sk-none, .sk-note { margin: 0.4rem 0 0; color: var(--esr-muted); font-size: 0.9rem; }
+
+.sk-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
