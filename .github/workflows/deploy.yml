@@ -1,0 +1,130 @@
+# Builds the docs from the Eastern_Sun_Resurrected game data and deploys them to GitHub Pages.
+#
+# Runs:
+#   - on every push to main in this repo (docs/generator changes)
+#   - on demand (Actions tab -> "Build and deploy docs" -> Run workflow)
+#   - every 30 minutes: checks the game repo's latest commit and only rebuilds when it differs
+#     from the commit the live site was built from (recorded in site/build-info.json).
+#
+# Nothing is needed in the game repo: it is public and only read.
+# Note: GitHub pauses scheduled workflows in repos with no activity for 60 days;
+# re-enable it from the Actions tab if that happens.
+
+name: Build and deploy docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  ESR_REPO: CelestialRayOne/Eastern_Sun_Resurrected
+  ESR_BRANCH: main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      esr_sha: ${{ steps.esr.outputs.sha }}
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - name: Find latest game data commit
+        id: esr
+        run: |
+          sha=$(git ls-remote "https://github.com/$ESR_REPO.git" "refs/heads/$ESR_BRANCH" | cut -f1)
+          if [ -z "$sha" ]; then echo "::error::Could not read $ESR_REPO $ESR_BRANCH"; exit 1; fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Decide whether to build
+        id: decide
+        env:
+          SHA: ${{ steps.esr.outputs.sha }}
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then
+            echo "Triggered by $EVENT: building."
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          deployed=$(curl -fsSL "$BASE_URL/build-info.json" 2>/dev/null | jq -r '.esrCommit // empty' || true)
+          if [ "$deployed" = "$SHA" ]; then
+            echo "Live site already built from ${SHA:0:7}: nothing to do."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Game data changed (${deployed:-none} -> ${SHA:0:7}): building."
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout docs
+        uses: actions/checkout@v4
+
+      - name: Checkout game data (excel + strings only)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.ESR_REPO }}
+          ref: ${{ needs.check.outputs.esr_sha }}
+          path: esr
+          filter: blob:none
+          sparse-checkout: |
+            Eastern_Sun_Resurrected.mpq/data/global/excel
+            Eastern_Sun_Resurrected.mpq/data/local/lng/strings
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate cube recipe data
+        run: node scripts/build-cube-recipes.mjs --esr=esr --report=cube-report.md
+
+      - name: Record build info
+        env:
+          ESR_SHA: ${{ needs.check.outputs.esr_sha }}
+        run: |
+          printf '{"esrRepo":"%s","esrCommit":"%s","docsCommit":"%s","builtAt":"%s"}\n' \
+            "$ESR_REPO" "$ESR_SHA" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > site/build-info.json
+          {
+            echo "Built from game data [\`${ESR_SHA:0:7}\`](https://github.com/$ESR_REPO/commit/$ESR_SHA)."
+            echo
+            cat cube-report.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

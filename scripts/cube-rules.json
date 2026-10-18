@@ -1,0 +1,1200 @@
+{
+  "$comment": "Rules for scripts/build-cube-recipes.mjs. 'rules' are matched in order against cubemain.txt 'description' (case-insensitive regex); the first match wins. 'title'/'group' may use $1..$n from the match. Rows matching no rule land in 'Other Recipes' and are listed in the build report.",
+  "pageNotes": [
+    "Most, but not all, recipes that reroll the input don't work if the input has a Forging. If you find a recipe doesn't work, please check if the input has a Forging or not.",
+    "You can buy Stockers at Gheed. Most Stockers can store up to 2 items of a kind at once.",
+    "Torso means Body Armor. Armor means all kinds of armor."
+  ],
+  "categories": [
+    {
+      "id": "special",
+      "title": "Special"
+    },
+    {
+      "id": "uber",
+      "title": "Uber / Endgame Map Recipes"
+    },
+    {
+      "id": "legendary",
+      "title": "Legendary Consumables",
+      "intro": "Legendary consumables are extremely rare consumables that can be used only once and the outcome cannot be reverted. They grant special bonuses."
+    },
+    {
+      "id": "mastery",
+      "title": "Weapon Mastery"
+    },
+    {
+      "id": "anoint",
+      "title": "Anointments",
+      "intro": "Anointing rolls one random Anointment for the item type."
+    },
+    {
+      "id": "corrupt",
+      "title": "Corruptions",
+      "intro": "Corrupting rolls one random outcome for the item type and quality."
+    },
+    {
+      "id": "sanct",
+      "title": "Sanctification"
+    },
+    {
+      "id": "mis",
+      "title": "Misc / Repair"
+    },
+    {
+      "id": "gem",
+      "title": "Gems / Runes / Crystals"
+    },
+    {
+      "id": "rel",
+      "title": "Ancient Relics"
+    },
+    {
+      "id": "mat",
+      "title": "Cubing Materials",
+      "intro": "Organs include Hearts, Souls, Brains, Eyes, Scalps, Horns, Fangs, Jawbones, Spleens, Quills and Tails. Steaks, Cookbooks and Flags are not Organs."
+    },
+    {
+      "id": "stock",
+      "title": "Stockers",
+      "intro": "You can buy Stockers at Gheed. Most Stockers can store up to 2 items of a kind at once."
+    },
+    {
+      "id": "coupon",
+      "title": "Coupons"
+    },
+    {
+      "id": "nor",
+      "title": "Normal Items"
+    },
+    {
+      "id": "mag",
+      "title": "Magic / Rare Items"
+    },
+    {
+      "id": "uni",
+      "title": "Unique Items"
+    },
+    {
+      "id": "set",
+      "title": "Set Items"
+    },
+    {
+      "id": "old",
+      "title": "Legacy Craft (LoD Craft)",
+      "intro": "LoD crafting recipes have been drastically improved (and made more expensive as well). No limitation for the base item: the Blood Gloves recipe accepts all gloves, for example. (ilvl = char lvl × 60% + previous ilvl × 60%)"
+    },
+    {
+      "id": "new",
+      "title": "Class Craft",
+      "intro": "Class Crafted items can be used by any class, unless the base item is class specific. For example, if you play a Barbarian but need lots of IAS and Crushing Blow, you may like Necro Crafted weapons better than Barbarian Crafted weapons. Stat Forging, Rune Forging and Tab Forging are allowed for Crafted items. (ilvl = char lvl × 60% + previous ilvl × 60%)"
+    },
+    {
+      "id": "rin",
+      "title": "Rings / Amulets",
+      "intro": "When you reroll multiple Amulets or Rings, the last one put in the Cube determines the type. For example, if you put a Ring, an Amazon Ring and a Sorc Ring in this order, you'll get a new Sorc Ring. If the output ilvl is lower than the level of the spawned Unique, it turns into a rare."
+    },
+    {
+      "id": "cha",
+      "title": "Charms"
+    },
+    {
+      "id": "jew",
+      "title": "Jewels"
+    },
+    {
+      "id": "qui",
+      "title": "Arrow / Bolt Quivers"
+    },
+    {
+      "id": "for",
+      "title": "Forging",
+      "intro": "Forging enhances an item for no penalty, but an item may have only one Forging mod at a time. You can remove any unwanted Forging (except Wo Forging) to apply another Forging. Wo Forging can't be removed because there is no way to remove the \"Indestructible\" property."
+    },
+    {
+      "id": "dst",
+      "title": "D-Stoning",
+      "intro": "D-Stoning can also be applied to unforgeable items like Runeworded items. D-Stoning can't be removed, so please apply it carefully. Every D-Stoning cap is a standalone cap: an item with 190% fire spell damage from affixes and a 200% D-Stone cap can reach 390%. The only exception is enhanced damage and enhanced defense, which cannot go above 500% on any item. D-Stoning applied to a white item after making a Runeword is lost when you remove the Runes; applied before making the Runeword, it remains. D-Stoning doesn't work if the target is elite with a +58 level requirement penalty or more, exceptional with +79 or more, or normal/jewelry with +99 or more."
+    },
+    {
+      "id": "tin",
+      "title": "Tinkering",
+      "intro": "All items are generated with 25-35 invisible Tinkering points as an inherent property. Each Tinkering recipe consumes some Tinkering point(s). If an item cannot be tinkered anymore, its points have been depleted."
+    },
+    {
+      "id": "bas",
+      "title": "Base Upgrades / Changes",
+      "intro": "You can't reroll Unique/Set items after a base upgrade, and you can't convert Convertible Set items after a base upgrade. Base Upgrade recipes don't accept Ethereal Armor. Use the special upgrade recipes for Mercenary Sets, which are cheaper and better."
+    },
+    {
+      "id": "soc",
+      "title": "Socket Recipes",
+      "intro": "The number of sockets can't exceed the max sockets of the base item. Items dropped in Normal and Nightmare Act 1 can't have the max sockets in some cases. You can't change the number of existing sockets."
+    },
+    {
+      "id": "sec",
+      "title": "Secret Recipes",
+      "intro": "Secret Recipes require a specific Ancient Scroll to be performed. Ancient Scrolls are found randomly by playing the game and can be identified using an Ancient Decipherer. The Ancient Scroll is returned after performing the recipe."
+    },
+    {
+      "id": "tyrael",
+      "title": "Tyrael's Might Extra Boon",
+      "intro": "Tyrael's Might can receive additional bonuses through a unique, one-time recipe."
+    }
+  ],
+  "hideOutputs": [
+    "Red Portal",
+    "Cow Portal",
+    "Pandemonium Portal",
+    "Pandemonium Finale Portal"
+  ],
+  "hideItemTypes": [
+    "can1",
+    "can9"
+  ],
+  "rules": [
+    {
+      "match": "^Test Recipe",
+      "hide": true
+    },
+    {
+      "match": "^Trap Damage Augmenter",
+      "category": "mis",
+      "title": "Trap Damage Augmenter"
+    },
+    {
+      "match": "(^|\\s)trap(\\s|$)",
+      "hide": true
+    },
+    {
+      "match": "OLD \\(Delete later\\)",
+      "hide": true
+    },
+    {
+      "match": "^Check if already",
+      "hide": true
+    },
+    {
+      "match": "^(Unique|Set|Rare|Crafted|Low Quality|Normal|High Quality) Corruption",
+      "hide": true
+    },
+    {
+      "match": "^Anointment - ",
+      "hide": true
+    },
+    {
+      "match": "^Jewel Sanctification",
+      "hide": true
+    },
+    {
+      "match": "^Prevent Vessel of Souls Corrupt",
+      "hide": true
+    },
+    {
+      "match": "Multi Input - Any",
+      "hide": true
+    },
+    {
+      "match": "^decal (ON|OFF)",
+      "hide": true
+    },
+    {
+      "match": "^(Gem Can|Xtal Can|Crystal Can)",
+      "hide": true
+    },
+    {
+      "match": "^\\[SECRET(\\d+)\\]\\s*Socket\\(\\d\\) (Weapon|Armor).*",
+      "category": "sec",
+      "title": "Secret #$1: Socket $2",
+      "group": "secret-$1"
+    },
+    {
+      "match": "^\\[SECRET(\\d+)\\]\\s*(Gloves|Belt|Boots):.*",
+      "category": "sec",
+      "title": "Secret #$1: $2 Conversion",
+      "group": "secret-$1"
+    },
+    {
+      "match": "^\\[SECRET(\\d+)\\]\\s*Socket\\(\\d\\):.*",
+      "category": "sec",
+      "title": "Secret #$1: Add Socket to Jewelry",
+      "group": "secret-$1"
+    },
+    {
+      "match": "^\\[SECRET(\\d+)\\]\\s*Tinkering Adds.*",
+      "category": "sec",
+      "title": "Secret #$1: Supercharged Tinkering",
+      "group": "secret-$1"
+    },
+    {
+      "match": "^\\[SECRET(14)\\]",
+      "category": "sec",
+      "title": "Secret #$1: Perfect Gems from Cubing Materials",
+      "group": "secret-$1"
+    },
+    {
+      "match": "^\\[SECRET(\\d+)\\]\\s*(.*)$",
+      "category": "sec",
+      "title": "Secret #$1: $2",
+      "group": "secret-$1"
+    },
+    {
+      "match": "^(Horadric Staff|Khalim's Will|Cow Portal)",
+      "category": "special"
+    },
+    {
+      "match": "^Negative MF Charm",
+      "category": "special"
+    },
+    {
+      "match": "^Introductory Book",
+      "category": "special"
+    },
+    {
+      "match": "^(Another )?Adventurer's Pack|^Weapons Crate",
+      "category": "special"
+    },
+    {
+      "match": "^Starter Weapon for",
+      "category": "special",
+      "title": "Starter Weapons",
+      "group": "starter"
+    },
+    {
+      "match": "^Tier (\\d) Map Randomization",
+      "category": "uber",
+      "title": "Tier $1 Map Randomization"
+    },
+    {
+      "match": "^Tier (\\d) -> (\\d) ",
+      "category": "uber",
+      "title": "Upgrade Tier $1 Maps to Tier $2",
+      "group": "upgrade-$1"
+    },
+    {
+      "match": "^Tier (\\d) Map ",
+      "category": "uber",
+      "title": "Tier $1 Maps",
+      "group": "tier-$1"
+    },
+    {
+      "match": "^Unique Map|^Map Recycle",
+      "category": "uber"
+    },
+    {
+      "match": "^Key of (Terror|Hate|Destruction) \\+",
+      "category": "uber",
+      "title": "Key Conversion",
+      "group": "keys"
+    },
+    {
+      "match": "Pandemonium Key|^1 Key of|Diablo's Horn|Hourglass",
+      "category": "uber"
+    },
+    {
+      "match": "^Standard of Heroes",
+      "category": "uber",
+      "title": "Standard of Heroes Upgrades",
+      "group": "soh"
+    },
+    {
+      "match": "^Rathma's Eternal Skull",
+      "category": "uber"
+    },
+    {
+      "match": "^(Inarius|Astrogha|Lilith's Crystallized|Tyrael's Eternal Feather|Lucion's Fiery)",
+      "category": "legendary"
+    },
+    {
+      "match": "^Kill Ledger Tier",
+      "hide": true,
+      "why": "Covered by the old site page kill_ledger"
+    },
+    {
+      "match": "^Kill Ledger ",
+      "hide": true,
+      "why": "Covered by the old site page kill_ledger"
+    },
+    {
+      "match": "^Orb of Creation",
+      "hide": true,
+      "why": "Covered by the old site page ascendancies"
+    },
+    {
+      "match": "^(.+?) Ascendancy:",
+      "hide": true,
+      "why": "Covered by the old site page ascendancies"
+    },
+    {
+      "match": "^(.+?) Ascend to Tier (\\d)",
+      "hide": true,
+      "why": "Covered by the old site page ascendancies"
+    },
+    {
+      "match": "^(.+?) Primordial Soulstone",
+      "hide": true,
+      "why": "Covered by the old site page ascendancies"
+    },
+    {
+      "match": "^(.+?) Lich King Bonus",
+      "hide": true,
+      "why": "Covered by the old site page ascendancies"
+    },
+    {
+      "match": "^Tyrael Might Aura",
+      "category": "tyrael",
+      "title": "Tyrael's Might Extra Boon",
+      "group": "tyrael"
+    },
+    {
+      "match": "^(Awaken|Unawaken|Apply Awaken|Remove Awaken) Weapon Mastery Token",
+      "category": "mastery",
+      "title": "$1 Weapon Mastery Token"
+    },
+    {
+      "match": "^Add Anointment Dummy Stat",
+      "category": "anoint",
+      "title": "Anoint an Item",
+      "group": "anoint"
+    },
+    {
+      "match": "^Orb of Anointment",
+      "category": "anoint"
+    },
+    {
+      "match": "^Add Corruption Dummy Stat",
+      "category": "corrupt",
+      "title": "Corrupt an Item",
+      "group": "corrupt"
+    },
+    {
+      "match": "Sanctification",
+      "category": "sanct",
+      "title": "Sanctify a Jewel",
+      "group": "sanct"
+    },
+    {
+      "match": "^Vessel of Souls Tier (\\d)",
+      "hide": true,
+      "why": "Covered by the old site page vessel_of_souls"
+    },
+    {
+      "match": "^Vessel of Souls Transform",
+      "hide": true,
+      "why": "Covered by the old site page vessel_of_souls"
+    },
+    {
+      "match": "^Vessel of Souls",
+      "hide": true,
+      "why": "Covered by the old site page vessel_of_souls"
+    },
+    {
+      "match": "Rejuv Pot|potion upgrade",
+      "category": "mis",
+      "title": "Potions",
+      "group": "potions"
+    },
+    {
+      "match": "^Repair|^Recharge|^Replenish",
+      "category": "mis",
+      "title": "Repair / Recharge / Replenish",
+      "group": "repair"
+    },
+    {
+      "match": "^Unsocket ",
+      "category": "mis",
+      "title": "Unsocket Items",
+      "group": "unsocket"
+    },
+    {
+      "match": "Merc Only Conversion",
+      "category": "mis",
+      "title": "Merc-Only Conversion",
+      "group": "merc"
+    },
+    {
+      "match": "^Belt Upgrade|^Socket Donut|^Token of Absolution|^Anya's Gift",
+      "category": "mis"
+    },
+    {
+      "match": "^[LNFBP]-(Ame|Top|Sap|Eme|Rub|Dia|Sku|Obs):",
+      "category": "gem",
+      "title": "Gem Upgrades",
+      "group": "gems"
+    },
+    {
+      "match": "^P-(Ame|Top|Sap|Eme|Rub|Dia|Sku|Obs)$",
+      "category": "gem",
+      "title": "Perfect Gem from Chipped Gem",
+      "group": "pgem"
+    },
+    {
+      "match": "^Upgrade Crystal",
+      "category": "gem",
+      "title": "Crystal Upgrades"
+    },
+    {
+      "match": "^rune (upgrade|downgrade)",
+      "category": "gem",
+      "title": "Rune $1",
+      "capitalize": true
+    },
+    {
+      "match": "^(Nul -> Wo|Wo -> Nul|Mi Rune)",
+      "category": "gem"
+    },
+    {
+      "match": "^decal upgrade",
+      "category": "gem",
+      "title": "Decal Upgrade"
+    },
+    {
+      "match": "^(Moon|Fire|Water|Wood|Metal|Earth|Sun|Thunder|Wind|Dragon|Life|Death|Heaven|God) Rune",
+      "category": "gem",
+      "title": "Kanji Runes",
+      "group": "kanji"
+    },
+    {
+      "match": "^Identify Scroll|^Scroll (Reroll|Upgrade)|^DS: Ancient Scroll|^Randomize Stone",
+      "category": "rel"
+    },
+    {
+      "match": "^Dstone Transformation",
+      "category": "dst",
+      "title": "Dragon Stone Cycling",
+      "group": "cycle"
+    },
+    {
+      "match": "Decipherer",
+      "category": "mat",
+      "title": "Ancient Decipherers",
+      "group": "decipherer"
+    },
+    {
+      "match": "^\\d+ (Brains|Eyes|Scalps|Horns|Fangs|Jawbones|Spleens|Quills|Tails|Flags):",
+      "category": "mat",
+      "title": "Organ Duplication",
+      "group": "organs"
+    },
+    {
+      "match": "^(Steak|Cookbook|DS: \\d|Maple Leaf|Anvil Stone)",
+      "category": "mat"
+    },
+    {
+      "match": "^Rune Stocker|^Decal Stocker|^Multi Stocker|^\"Multi Stocker|^Rerolling Orb|^Opener Size",
+      "category": "stock"
+    },
+    {
+      "match": "^Coupon Reroll",
+      "category": "coupon",
+      "title": "Coupon Reroll"
+    },
+    {
+      "match": "^Coupon",
+      "category": "coupon",
+      "title": "Coupons"
+    },
+    {
+      "match": "^Normal (Weapon|Armor|Bolts|Arrows)|^\\d Socket (GHelm|Mask|Crown|Circ)",
+      "category": "nor"
+    },
+    {
+      "match": "^magic .+ -> (hitpower|blood|caster|safety) (.+)$",
+      "category": "old",
+      "title": "$1 Craft",
+      "group": "$1",
+      "capitalize": true
+    },
+    {
+      "match": "^magic .+ -> (\\w+) (.+)$",
+      "category": "new",
+      "title": "$1 Craft",
+      "group": "$1",
+      "capitalize": true
+    },
+    {
+      "match": "^(\\w+) Unique (Ring|Amulet):",
+      "category": "rin",
+      "title": "Class Unique $2",
+      "group": "class-$2"
+    },
+    {
+      "match": "^(Magic|Rare|Unique|Set) (Ring|Amulet):",
+      "category": "rin"
+    },
+    {
+      "match": "Resi (Rare|Magic)|^(DR|LL|ML) (Rare|Magic) Ring",
+      "category": "rin",
+      "title": "Resist / Leech Crafts",
+      "group": "resi"
+    },
+    {
+      "match": "^\\+\\d-\\d Tree Magic (Amu|Ring|Rin)",
+      "category": "rin",
+      "title": "Skill Tree Magic Jewelry",
+      "group": "tree"
+    },
+    {
+      "match": "Charm",
+      "category": "cha"
+    },
+    {
+      "match": "Forging|^Forging Hammer",
+      "category": "for"
+    },
+    {
+      "match": "Jewel",
+      "category": "jew"
+    },
+    {
+      "match": "Arrow|Bolt",
+      "category": "qui"
+    },
+    {
+      "match": "^(SS|DS|FH|TO|BM|HS|CG|VS) \\+ Any (\\w+)",
+      "category": "dst",
+      "title": "D-Stoning: Any $2",
+      "group": "$2"
+    },
+    {
+      "match": "^P-\\w+ \\+ Any (\\w+)",
+      "category": "dst",
+      "title": "Gem Melding: Any $1",
+      "group": "meld-$1"
+    },
+    {
+      "match": "^Tinkering",
+      "category": "tin"
+    },
+    {
+      "match": "^(Elite|Excep) Upgrade: (.+?) \\+.*",
+      "category": "bas",
+      "title": "$1 Upgrade: $2"
+    },
+    {
+      "match": "^Helm -> ",
+      "category": "bas"
+    },
+    {
+      "match": "^Adds Socket\\((\\d)\\)",
+      "category": "soc",
+      "title": "Add $1 Socket(s)"
+    },
+    {
+      "match": "^(Unique|Set): \\d",
+      "category": "uni"
+    },
+    {
+      "match": "^Unique (Reroll|Stone)|^Eth Unique",
+      "category": "uni"
+    },
+    {
+      "match": "^Set (Cycle|Reroll)",
+      "category": "set"
+    },
+    {
+      "match": "^Set Conv ",
+      "category": "set",
+      "title": "Set Conversions",
+      "group": "conv"
+    },
+    {
+      "match": "^(Magic|Rare|Eth) |Magic Armor ctc",
+      "category": "mag"
+    }
+  ],
+  "titleReplacements": [
+    [
+      "\\s(Ama|Ass|Bar|Dru|Nec|Pal|Sor|War)(_\\w+)?$",
+      ""
+    ],
+    [
+      "^(Remove )?Uni ",
+      "$1Unique "
+    ],
+    [
+      "^(Remove )?Rar ",
+      "$1Rare "
+    ],
+    [
+      "^(Remove )?Mag ",
+      "$1Magic "
+    ],
+    [
+      "^(Remove )?Crf ",
+      "$1Crafted "
+    ],
+    [
+      "Mag/Rar ",
+      "Magic/Rare "
+    ],
+    [
+      "Forging Jewel W$",
+      "Forging: Jewels - Weapon Mods"
+    ],
+    [
+      "Forging Jewel H$",
+      "Forging: Jewels - Defensive Mods"
+    ],
+    [
+      "Forging wand/staf$",
+      "Forging: Wands / Staves"
+    ],
+    [
+      "Forging wand$",
+      "Forging: Wands"
+    ],
+    [
+      "Forging staf$",
+      "Forging: Staves"
+    ],
+    [
+      "Forging weap$",
+      "Forging: Weapons"
+    ],
+    [
+      "Forging glov$",
+      "Forging: Gloves"
+    ],
+    [
+      "Forging tors/shld/belt$",
+      "Forging: Body Armor / Shields / Belts"
+    ],
+    [
+      "Forging tors$",
+      "Forging: Body Armor"
+    ],
+    [
+      "Forging shld$",
+      "Forging: Shields"
+    ],
+    [
+      "Forging belt$",
+      "Forging: Belts"
+    ],
+    [
+      "Forging armo$",
+      "Forging: Armor"
+    ],
+    [
+      "Forging ring$",
+      "Forging: Rings"
+    ],
+    [
+      "Forging amul$",
+      "Forging: Amulets"
+    ],
+    [
+      "Antitode",
+      "Antidote"
+    ]
+  ],
+  "itemNames": {
+    "isc": "Scroll of Identify",
+    "tsc": "Scroll of Town Portal"
+  },
+  "typeNames": {
+    "tors": "Any Body Armor",
+    "armo": "Any Armor",
+    "can2": "Rune Stocker",
+    "can4": "Decal Stocker",
+    "can5": "Secret Tome 1",
+    "can6": "Secret Tome 2",
+    "can7": "Rerolling Orb",
+    "can8": "Multi Stocker"
+  },
+  "specialTokens": {
+    "any": "Any Item",
+    "void": "Nothing (consumed)",
+    "Cow Portal": "Portal to the Secret Cow Level",
+    "Pandemonium Portal": "Portal to a Pandemonium Uber Level",
+    "Pandemonium Finale Portal": "Portal to Uber Tristram",
+    "Red Portal": "Red Portal",
+    "cloneitem": "Copy of the input item"
+  },
+  "hiddenProperties": [
+    "_dummy$",
+    "-dummy$",
+    "^corrupted$",
+    "^anointed$",
+    "^sanctified$",
+    "^mythicaldesc$",
+    "^unusable-item$",
+    "-cap(-group)?$",
+    "-half$",
+    "^ascendancy-",
+    "-tier-\\d$",
+    "^kill-ledger",
+    "^lich-king-bonus$",
+    "^meldflag$",
+    "^aura-hidden$",
+    "^randomize$",
+    "^vit-h2$"
+  ],
+  "deltaProperties": [
+    "^gem-[a-z]$",
+    "^rune-\\d+$",
+    "^xtal-\\d+$",
+    "^item-\\d+$",
+    "^junk-\\d+$"
+  ],
+  "conditionText": {
+    "item_craftflag": {
+      "0": "Item must not have a Forging mod",
+      "default": "Item must have the matching Forging mod"
+    },
+    "item_craftflag2": {
+      "0": "Item must not have a Forging mod",
+      "default": "Item must have the matching Forging mod"
+    },
+    "item_numsockets": "Sockets {op} {value}",
+    "item_levelreq": {
+      "0": "Item must not be D-Stoned",
+      "default": "D-Stone level requirement {op} {value}"
+    },
+    "item_mercflag": {
+      "0": "Item must not be Merc-only",
+      "default": "Item must be Merc-only"
+    },
+    "weaponmastery": {
+      "0": "Item must not have a Weapon Mastery Token",
+      "default": null
+    },
+    "kill_base": "Kill count {op} {value}",
+    "17:item_upgraded": "Item must not already be upgraded",
+    "item_restinpeace": "Item must have Rest In Peace",
+    "item_knockback": "Item must have Knockback",
+    "15:item_corrupted": "Item must be Corrupted",
+    "16:item_fastermovevelocity": "Faster Run/Walk must be below {value}%",
+    "16:item_fasterblockrate": "Faster Block Rate must be below {value}%",
+    "16:item_fasterattackrate": "Increased Attack Speed must be below {value}%",
+    "16:item_fastercastrate": "Faster Cast Rate must be below {value}%"
+  },
+  "hiddenConditionStats": [
+    "_dummy$",
+    "^item_randomize$",
+    "^kill_check$",
+    "^soul_counter$",
+    "^ascendancy_",
+    "^gem_[a-z]$",
+    "^rune_\\d+$",
+    "^xtal_\\d+$",
+    "^item_\\d+$",
+    "^junk_\\d+$",
+    "^branded$",
+    "^item_meldflag$",
+    "^item_tinkerflag",
+    "_cap$",
+    "^passive_",
+    "^$"
+  ],
+  "propertyText": {
+    "sock": "Adds {range} Socket(s)",
+    "oskill": "{srange} to {skill}",
+    "dmg%": "{srange}% Enhanced Damage",
+    "dmg-min": "{srange} to Minimum Damage",
+    "dmg-max": "{srange} to Maximum Damage",
+    "aura": "Level {range} {skill} Aura When Equipped",
+    "ethereal": "Ethereal",
+    "indestruct": "Indestructible"
+  },
+  "ingredientSuffix": "\\+|^\\d|^[CLNFBP]-[A-Z][a-z]+s?$|^Equipment\\b",
+  "titleAbbreviations": [
+    [
+      "\\bC-Gems\\b",
+      "Chipped Gems"
+    ],
+    [
+      "\\bC-Gem\\b",
+      "Chipped Gem"
+    ],
+    [
+      "\\bC-Ame\\b",
+      "Chipped Amethyst"
+    ],
+    [
+      "\\bC-Top\\b",
+      "Chipped Topaz"
+    ],
+    [
+      "\\bC-Sap\\b",
+      "Chipped Sapphire"
+    ],
+    [
+      "\\bC-Eme\\b",
+      "Chipped Emerald"
+    ],
+    [
+      "\\bC-Rub\\b",
+      "Chipped Ruby"
+    ],
+    [
+      "\\bC-Dia\\b",
+      "Chipped Diamond"
+    ],
+    [
+      "\\bC-Sku\\b",
+      "Chipped Skull"
+    ],
+    [
+      "\\bC-Obs\\b",
+      "Chipped Obsidian"
+    ],
+    [
+      "\\bL-Gems\\b",
+      "Flawed Gems"
+    ],
+    [
+      "\\bL-Gem\\b",
+      "Flawed Gem"
+    ],
+    [
+      "\\bL-Ame\\b",
+      "Flawed Amethyst"
+    ],
+    [
+      "\\bL-Top\\b",
+      "Flawed Topaz"
+    ],
+    [
+      "\\bL-Sap\\b",
+      "Flawed Sapphire"
+    ],
+    [
+      "\\bL-Eme\\b",
+      "Flawed Emerald"
+    ],
+    [
+      "\\bL-Rub\\b",
+      "Flawed Ruby"
+    ],
+    [
+      "\\bL-Dia\\b",
+      "Flawed Diamond"
+    ],
+    [
+      "\\bL-Sku\\b",
+      "Flawed Skull"
+    ],
+    [
+      "\\bL-Obs\\b",
+      "Flawed Obsidian"
+    ],
+    [
+      "\\bN-Gems\\b",
+      "Standard Gems"
+    ],
+    [
+      "\\bN-Gem\\b",
+      "Standard Gem"
+    ],
+    [
+      "\\bN-Ame\\b",
+      "Standard Amethyst"
+    ],
+    [
+      "\\bN-Top\\b",
+      "Standard Topaz"
+    ],
+    [
+      "\\bN-Sap\\b",
+      "Standard Sapphire"
+    ],
+    [
+      "\\bN-Eme\\b",
+      "Standard Emerald"
+    ],
+    [
+      "\\bN-Rub\\b",
+      "Standard Ruby"
+    ],
+    [
+      "\\bN-Dia\\b",
+      "Standard Diamond"
+    ],
+    [
+      "\\bN-Sku\\b",
+      "Standard Skull"
+    ],
+    [
+      "\\bN-Obs\\b",
+      "Standard Obsidian"
+    ],
+    [
+      "\\bF-Gems\\b",
+      "Flawless Gems"
+    ],
+    [
+      "\\bF-Gem\\b",
+      "Flawless Gem"
+    ],
+    [
+      "\\bF-Ame\\b",
+      "Flawless Amethyst"
+    ],
+    [
+      "\\bF-Top\\b",
+      "Flawless Topaz"
+    ],
+    [
+      "\\bF-Sap\\b",
+      "Flawless Sapphire"
+    ],
+    [
+      "\\bF-Eme\\b",
+      "Flawless Emerald"
+    ],
+    [
+      "\\bF-Rub\\b",
+      "Flawless Ruby"
+    ],
+    [
+      "\\bF-Dia\\b",
+      "Flawless Diamond"
+    ],
+    [
+      "\\bF-Sku\\b",
+      "Flawless Skull"
+    ],
+    [
+      "\\bF-Obs\\b",
+      "Flawless Obsidian"
+    ],
+    [
+      "\\bB-Gems\\b",
+      "Blemished Gems"
+    ],
+    [
+      "\\bB-Gem\\b",
+      "Blemished Gem"
+    ],
+    [
+      "\\bB-Ame\\b",
+      "Blemished Amethyst"
+    ],
+    [
+      "\\bB-Top\\b",
+      "Blemished Topaz"
+    ],
+    [
+      "\\bB-Sap\\b",
+      "Blemished Sapphire"
+    ],
+    [
+      "\\bB-Eme\\b",
+      "Blemished Emerald"
+    ],
+    [
+      "\\bB-Rub\\b",
+      "Blemished Ruby"
+    ],
+    [
+      "\\bB-Dia\\b",
+      "Blemished Diamond"
+    ],
+    [
+      "\\bB-Sku\\b",
+      "Blemished Skull"
+    ],
+    [
+      "\\bB-Obs\\b",
+      "Blemished Obsidian"
+    ],
+    [
+      "\\bP-Gems\\b",
+      "Perfect Gems"
+    ],
+    [
+      "\\bP-Gem\\b",
+      "Perfect Gem"
+    ],
+    [
+      "\\bP-Ame\\b",
+      "Perfect Amethyst"
+    ],
+    [
+      "\\bP-Top\\b",
+      "Perfect Topaz"
+    ],
+    [
+      "\\bP-Sap\\b",
+      "Perfect Sapphire"
+    ],
+    [
+      "\\bP-Eme\\b",
+      "Perfect Emerald"
+    ],
+    [
+      "\\bP-Rub\\b",
+      "Perfect Ruby"
+    ],
+    [
+      "\\bP-Dia\\b",
+      "Perfect Diamond"
+    ],
+    [
+      "\\bP-Sku\\b",
+      "Perfect Skull"
+    ],
+    [
+      "\\bP-Obs\\b",
+      "Perfect Obsidian"
+    ],
+    [
+      "\\bDS\\b",
+      "Dragon Stone"
+    ],
+    [
+      "\\bSS\\b",
+      "Spider's Silk"
+    ],
+    [
+      "\\bFH\\b",
+      "Forging Hammer"
+    ],
+    [
+      "\\bTO\\b",
+      "Tyranium Ore"
+    ],
+    [
+      "\\bBM\\b",
+      "Blackmoor"
+    ],
+    [
+      "\\bHS\\b",
+      "Holy Symbol"
+    ],
+    [
+      "\\bCG\\b",
+      "Crushed Gem"
+    ],
+    [
+      "\\bVS\\b",
+      "Void Shard"
+    ],
+    [
+      "\\bSC\\b",
+      "Small Charm"
+    ],
+    [
+      "\\bGC\\b",
+      "Grand Charm"
+    ],
+    [
+      "\\bMF\\b",
+      "Magic Find"
+    ],
+    [
+      "\\bGF\\b",
+      "Gold Find"
+    ],
+    [
+      "\\bExp\\b",
+      "Experience"
+    ],
+    [
+      "\\bRejuv\\b",
+      "Rejuvenation"
+    ],
+    [
+      "\\bPots\\b",
+      "Potions"
+    ],
+    [
+      "\\bPot\\b",
+      "Potion"
+    ],
+    [
+      "\\bUni\\b",
+      "Unique"
+    ],
+    [
+      "\\bMag\\b",
+      "Magic"
+    ],
+    [
+      "\\bNor\\b",
+      "Normal"
+    ],
+    [
+      "\\bCrf\\b",
+      "Crafted"
+    ],
+    [
+      "\\bExcep\\b",
+      "Exceptional"
+    ],
+    [
+      "\\bEth\\b",
+      "Ethereal"
+    ],
+    [
+      "\\bStd\\b",
+      "Standard"
+    ],
+    [
+      "\\bAmu\\b",
+      "Amulet"
+    ],
+    [
+      "\\bSqu\\b",
+      "Small"
+    ],
+    [
+      "\\bFdam\\b",
+      "Fire Damage"
+    ],
+    [
+      "\\bLdam\\b",
+      "Lightning Damage"
+    ],
+    [
+      "\\bCdam\\b",
+      "Cold Damage"
+    ],
+    [
+      "\\bMdam\\b",
+      "Magic Damage"
+    ],
+    [
+      "\\bDmg\\b",
+      "Damage"
+    ],
+    [
+      "\\bctc\\b",
+      "Chance to Cast"
+    ],
+    [
+      "\\bBas\\b",
+      "Normal-Base"
+    ],
+    [
+      "\\bExc\\b",
+      "Exceptional"
+    ],
+    [
+      "\\bEli\\b",
+      "Elite"
+    ],
+    [
+      "\\bNecro\\b",
+      "Necromancer"
+    ],
+    [
+      "\\bBarb\\b",
+      "Barbarian"
+    ],
+    [
+      "\\bHrt\\b",
+      "Heart"
+    ],
+    [
+      "Stocker Sol\\b",
+      "Stocker Soul"
+    ],
+    [
+      "\\s+x$",
+      ""
+    ]
+  ]
+}
