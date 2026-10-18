@@ -142,7 +142,7 @@ for (const page of pages) {
   if (!html.includes('id="site-nav"') || !html.includes('assets/site-nav.js')) { console.log(`  FAILED ${page}: no site nav`); bad++; }
   if (!nav.includes(`'${page}'`)) { console.log(`  FAILED ${page} is not in PAGES in site/assets/site-nav.js`); bad++; }
 }
-for (const m of nav.matchAll(/href: '([^']+)'/g)) {
+for (const m of nav.matchAll(/href: '([^'#][^']*)'/g)) {
   if (!fs.existsSync(path.join('site', m[1]))) { console.log(`  FAILED site-nav.js links to missing page ${m[1]}`); bad++; }
 }
 if (!bad) console.log(`  ok ${pages.length} pages: links resolve, nav present`);

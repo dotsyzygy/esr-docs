@@ -251,6 +251,99 @@ body {
 }
 .ui-missing code { color: var(--esr-accent); }
 
+/* ---------- scroll jumps (assets/site-nav.js) ---------- */
+
+.ui-jump {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 10;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  font: 0.95rem/1.4 var(--esr-font);
+}
+.ui-jump[hidden], .ui-rail[hidden], .ui-jump [hidden] { display: none; }
+.ui-jump button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.55rem 0.9rem;
+  color: var(--esr-text);
+  background: var(--esr-surface-2);
+  border: 1px solid var(--esr-border-strong);
+  border-radius: var(--esr-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+.ui-jump button:hover { border-color: var(--esr-accent); color: var(--esr-focus); }
+.ui-jump :focus-visible, .ui-rail :focus-visible { outline: 3px solid var(--esr-focus); outline-offset: 2px; }
+.ui-jump-menu { position: relative; }
+.ui-jump-menu > button::after { content: " \25B4"; color: var(--esr-muted); }
+.ui-jump-menu > button[aria-expanded="true"]::after { content: " \25BE"; }
+.ui-jump-menu nav {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  max-height: 60vh;
+  overflow: auto;
+  background: var(--esr-surface-2);
+  border: 1px solid var(--esr-border-strong);
+  border-radius: var(--esr-radius);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.8);
+}
+
+.ui-jump ul, .ui-rail ul { list-style: none; margin: 0; padding: 0.3rem 0; }
+.ui-jump a, .ui-rail a {
+  display: block;
+  padding: 0.4rem 0.9rem;
+  color: var(--esr-link);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.ui-jump a:hover, .ui-rail a:hover { color: var(--esr-focus); text-decoration: underline; }
+.ui-jump a[aria-current], .ui-rail a[aria-current] {
+  color: var(--esr-text);
+  font-weight: 600;
+  border-left-color: var(--esr-accent);
+}
+
+/* the rail sits in the right margin when it's wide enough (.page is 72rem) */
+.ui-rail { display: none; }
+@media (min-width: 96rem) {
+  .ui-rail {
+    display: block;
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+    width: min(14rem, calc(50vw - 37rem));
+    max-height: calc(100vh - 6rem);
+    overflow: auto;
+    font: 0.9rem/1.4 var(--esr-font);
+    background: var(--esr-surface);
+    border: 1px solid var(--esr-border);
+    border-radius: var(--esr-radius);
+  }
+  .ui-rail a { padding: 0.3rem 0.75rem; }
+  .ui-rail-title {
+    margin: 0;
+    padding: 0.5rem 0.75rem 0.1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--esr-muted);
+  }
+  .ui-jump-menu { display: none; }
+}
+
+@media print {
+  .ui-jump, .ui-rail { display: none !important; }
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 900px) {
