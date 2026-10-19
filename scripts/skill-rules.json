@@ -33,6 +33,10 @@
     { "$comment": "calc1 is 'num targets' in the data; the wildairs missile spawns fury missiles that fire immolationarrow, freezingarrow and lightningarrow",
       "skill": "Wild Airs of the Elements", "lines": [{ "text": "Targets: %d", "x": "clc1" }] }
   ],
+  "statText": {
+    "$comment": "Rewording for stats a skill grants when it has no skilldesc lines. hpregen is in 256ths of a point per frame (25 frames a second).",
+    "hpregen": { "text": "Replenishes %d Life per second", "calc": "{v}*25/256" }
+  },
   "descriptions": {
     "$comment": "From the old site's Mercenary and Oskill Information page, for skills whose numbers depend on other skills. Long Shot's data gives +5% damage per frame flown over 20 frames (+100%), the old page says up to +200%.",
     "Dragon Fury Discharge": "When it procs, unleashes a fully charged Dragon Fury at the level you have learned (not the proc's level).",

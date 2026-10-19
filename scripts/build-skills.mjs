@@ -361,17 +361,27 @@ function statTemplate(statKey) {
   }
 }
 
+// skill-rules.json statText rewords a stat whose raw value means little on a skill:
+// { stat: { text, calc } }, where calc wraps the value ({v}), e.g. hpregen in 256ths per frame.
+const statText = new Map(Object.entries(rules.statText || {}).filter(([k]) => !k.startsWith('$')).map(([k, v]) => [k.toLowerCase(), v]));
+
 function statLines(row, context) {
   const out = [];
   const add = (stat, token) => {
     if (!stat) return;
-    const a = statTemplate(stat);
+    const over = statText.get(stat.toLowerCase());
+    const a = over ? over.text : statTemplate(stat);
     if (!a) { bump(report.undescribedStats, stat, context); return; }
-    out.push({ t: 13, a, x: token });
+    out.push({ t: 13, a, x: over && over.calc ? over.calc.replace(/\{v\}/g, token) : token });
     bump(report.statLines, context, stat);
   };
   for (let i = 1; i <= 14; i++) add(row[`passivestat${i}`], `pst${i}`);
   for (let i = 1; i <= 6; i++) add(row[`aurastat${i}`], `ast${i}`);
+  // A timed buff (aura stats with a length, e.g. Warm Up) also says how long it lasts; the
+  // length is in frames (25 per second), worded like the game's own Duration lines.
+  if (out.length && row.aurastat1 && row.auralencalc && row.aura !== '1') {
+    out.push({ t: 36, a: text('StrSkillDurationSingular'), b: text('StrSkill20'), x: 'len', y: '25' });
+  }
   return out;
 }
 
