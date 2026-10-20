@@ -92,9 +92,10 @@ step "Generate"
 
 run_generator() { # <script> <report>
   # Lines a generator prints as "warning: ..." count as build warnings (not failures).
-  local out status
-  out=$(node "scripts/$1" --esr="$ESR" --report="$2" --strict 2>&1); status=$?
-  printf '%s\n' "$out" | grep -v '^warning: '
+  # Capture the exit status without tripping set -e, so a failing generator is reported.
+  local out status=0
+  out=$(node "scripts/$1" --esr="$ESR" --report="$2" --strict 2>&1) || status=$?
+  printf '%s\n' "$out" | grep -v '^warning: ' || true
   if [ "$status" = 0 ]; then ok "$1 (report: $2)"; else fail "$1 (see $2)"; fi
   while IFS= read -r line; do warn "$1: ${line#warning: }"; done < <(printf '%s\n' "$out" | grep '^warning: ')
 }

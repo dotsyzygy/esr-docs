@@ -150,8 +150,10 @@
   ],
   "hideItemTypes": [
     "can1",
-    "can9"
+    "can9",
+    "m19"
   ],
+  "$hideItemTypes": "can1/can9: Gem and Crystal Cans, removed from the game. m19: a Multi Stocker row (3.2.23) for a mythical item code that no items table has (m18 is followed by m20).",
   "rules": [
     {
       "match": "^Test Recipe",
@@ -321,7 +323,7 @@
       "why": "Covered by the old site page ascendancies"
     },
     {
-      "match": "^(.+?) Ascendancy:",
+      "match": "^(.+?) Ascendancy:|^Stance Dance Fix",
       "hide": true,
       "why": "Covered by the old site page ascendancies"
     },
