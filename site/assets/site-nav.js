@@ -10,6 +10,10 @@
   var PAGES = [
     { href: 'index.html', title: 'Home' },
     {
+      href: 'character.html', title: 'Character',
+      description: 'Open one of your character saves to see its base and final attributes, skill levels with gear, and the items and charms behind them. The save is read in your browser and never uploaded.'
+    },
+    {
       href: 'cube-recipes.html', title: 'Cube Recipes',
       description: 'Every Horadric Cube recipe: crafting, rerolls, upgrades, forging, sockets, runes and gems, searchable by item, rune or mod.'
     },

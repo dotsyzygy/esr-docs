@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Docs site for the Eastern Sun Resurrected (ESR) Diablo II Resurrected mod. The site is generated from the mod's game data and deployed to GitHub Pages at https://dotsyzygy.github.io/esr-docs/. So far it has a home page and three docs pages: Cube Recipes, Skills and Vessel of Souls. Other pages from the old site will be migrated in over time.
+Docs site for the Eastern Sun Resurrected (ESR) Diablo II Resurrected mod. The site is generated from the mod's game data and deployed to GitHub Pages at https://dotsyzygy.github.io/esr-docs/. So far it has a home page, three docs pages (Cube Recipes, Skills, Vessel of Souls) and a Character page that reads a player's save in the browser. Other pages from the old site will be migrated in over time.
 
 ## Hard rules
 
@@ -21,15 +21,17 @@ scripts/build-skills.mjs         skills generator
 scripts/skill-rules.json         skills presentation decisions (see below)
 scripts/build-vessel.mjs         Vessel of Souls generator (cubemain rows, via cube-resolve)
 scripts/vessel-rules.json        vessel tiers, limits, colours and texts (see below)
+scripts/build-character.mjs      Character page data (stat save widths and wording, item bases, names, class skills)
 build.sh                         local build + checks (see Commands)
 site/index.html                  home page: intro + a card per page (assets/home.css)
 site/cube-recipes.html           cube page
 site/skills.html                 skills page
 site/vessel-of-souls.html        Vessel of Souls page (styled after the old vessel_of_souls.htm)
+site/character.html              Character page: pick a .d2s, see attributes, skills, items
 site/assets/site.css             shared tokens, header, nav, .page and ui-* components
 site/assets/site-nav.js          the nav bar and home page cards, from one PAGES list
-site/assets/                     cube-recipes.js/.css; skills.js/.css; vessel-of-souls.js/.css; home.css; skill-calc.js (formula evaluator); icon
-site/data/                       GENERATED, gitignored (cube-recipes.enUS.js, skills.enUS.js, vessel-of-souls.enUS.js)
+site/assets/                     cube-recipes.js/.css; skills.js/.css; vessel-of-souls.js/.css; character.js/.css; home.css; skill-calc.js (formula evaluator); d2s.js (save reader) and item-text.js (item wording), both UMD; icon
+site/data/                       GENERATED, gitignored (cube-recipes.enUS.js, skills.enUS.js, vessel-of-souls.enUS.js, character.enUS.js)
 .github/workflows/deploy.yml     build + deploy to Pages
 ```
 
@@ -45,6 +47,7 @@ node scripts/build-cube-recipes.mjs --esr=<path> --report=cube-report.md
 node scripts/build-cube-recipes.mjs --strict                         # fail on unresolved/uncategorized
 node scripts/build-skills.mjs --report=skills-report.md              # same --esr/--strict options
 node scripts/build-vessel.mjs --report=vessel-report.md              # same --esr/--strict options
+node scripts/build-character.mjs --report=character-report.md        # same options, plus --save=<a.d2s>[,…]
 ```
 
 In VS Code, F5 ("Docs: build and open", `.vscode/launch.json`) runs the "Build docs" task (`build.sh --no-open` via Git Bash) and opens `site/index.html` in Chrome or Edge; Ctrl+Shift+B runs just the build. `build.sh` fails if a generator's `--strict` check fails, a script has a syntax error, a data file doesn't load, or a page references a missing local file, lacks the nav or is missing from `PAGES`. It only warns when a repo is behind its remote, or when a generator prints a `warning: …` line (e.g. a skill that resolves to nothing: no lines, no description, nothing from the rules; listed under "Skills that show nothing" in `skills-report.md`, to be fixed with `extraLines`, `descriptions` or `hideSkills`). Preview by opening `site/index.html` (or any page) directly in a browser; it works over `file://`. After any rules or generator change, rebuild and check `cube-report.md`. The goal is 0 uncategorized rows and 0 unresolved tokens. A few unresolved internal properties are expected. For skills, check `skills-report.md`: the goal is 0 formula warnings, unknown line types, unresolved strings and unformatted lines, and nothing under "Skills with no lines at all" that lacks a description. For the vessel, `vessel-report.md`: 0 unresolved tokens/properties and 0 usage limits that match no recipe.
@@ -104,6 +107,17 @@ Headless Chrome won't go below ~500px wide; to check phone width, load the page 
 - `rules`: regexes on `description`, first match wins: `hide`, `limit`/`times`, or `section` (+ `group`, `outcome` for anointment names).
 - `sections` (ids `tier1`–`tier4`, `completion` keep the old page's anchors; plus `anointments`) with intros (`{cost}` = the tier's common cost, `{souls}` = starting souls), `groupTitles` for tier 1's trigger types, `intro` paragraphs, `conditionText`/`limitText`.
 - `itemColors`: input code → the old page's colour (Heart red, Tail orange, Soul blue, …); the CSS lightens them for AA contrast. Items are always named, so colour is never the only signal.
+
+## How the Character page works
+
+- **Nothing is uploaded.** `character.js` reads the picked file with FileReader, `d2s.js` parses it, `item-text.js` words it. Saves are personal: `*.d2s` is gitignored; put test saves in the repo root and `build-character.mjs` (and so `build.sh`) test-parses them with the page's own code (`--strict` fails on a save that doesn't parse). `character-report.md` lists hidden stats and unnamed items.
+- **Save format:** ESR uses D2RLoader's extended save format (version bytes `05 00 'R' 'D'`), which is retail v105 with wider fields. The widths were reverse-engineered from a real save (D2RLoader doesn't document them) and are listed at the top of `d2s.js` (`FORMAT`): 16-bit stat ids ending in 0xFFFF, 32-bit item stat params, 16-bit unique/set ids, affixes and rare names, 2 extra bits before rare affix slots, an extra byte after the item flags. The runeword field is the **string id** of the runeword's name. Field order otherwise follows d2s-rs (github.com/ResurrectedTrader/d2s-rs). Weapon/armor is decided by the item-type tree (`weap`/`armo`), not the file (quivers are in weapons.txt but have no durability).
+- **Wording:** the tooltip's own strings by `descfunc`; an empty `descval` means no value; descfunc 19 without placeholders is a flag ("Indestructible"); text coloured black (`ÿc6`) is the game hiding it (`clean(..., { dropHidden })`). Per-level stats scale with the character level, or with the stat named in `op base` (Total Kills on `kill_base`). descfunc 23 names a monster by `*hcIdx`; ESR keeps item descriptions there (`item_mythicaldesc`). Stats with no description (e.g. `item_nonclassskill`/`item_aura`, whose `_display` twins carry the text) are hidden.
+- **Picking the file:** a page can't choose the folder the Open dialog starts in, so the page shows ESR's Windows save folder (`SAVE_FOLDER` in `character.js`) with a Copy button to paste into the dialog's File name box. Where `showOpenFilePicker` exists (Chrome, Edge) it replaces the plain input, and its `id` makes the dialog reopen in the last folder used.
+- **Skill levels:** hard points plus +skills from active gear (`activeItems` in `character.js`: equipped items of the active weapon set from the header's weapon-switch flag, and charms in the charm inventory, since ESR sets `allow_inventory_charms = false`), their runewords, socketed jewels and the partial set bonuses for the set items worn. +skills only raise skills with hard points or an oskill (`item_nonclassskill`); oskills of other classes are listed separately with their sources. Charm-dedup groups and item requirements are ignored.
+- **Attributes:** Base (saved points; life/mana/stamina are saved in 256ths) and Final (with gear, `finalAttributes`: flat + per-level, then % bonus; gear vitality/energy add life, stamina and mana at the class's charstats rates in quarters, shipped as `classes[].per`). The save's current life/mana/stamina are shown as a lower bound; for PewPewPew they are well above the computed Final, so skills/auras/full-set/gem bonuses still matter a lot.
+- **Items shown:** only what counts towards stats: Equipped (both weapon sets; the inactive one is labelled) and the Charm Inventory. Inventory, belt, cube, stash and mercenary items aren't shown (the parser still reads them).
+- **Not yet:** socketed gem/rune bonuses (gems.txt), character totals (advanced stats), DPS. Rare names (ESR has no rareprefix/raresuffix data) show as the base name. The shared stash (.d2i) isn't read.
 
 ## Content decisions already made
 

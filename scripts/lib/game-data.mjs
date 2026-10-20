@@ -55,9 +55,12 @@ export function tsvReader(excelDir) {
 
 // Strip colour codes; multi-line strings are stored bottom line first.
 // With keepLines the lines stay separate (joined by "\n") instead of being run together.
-export function clean(s, { reverseLines = false, keepLines = false } = {}) {
+// With dropHidden, text coloured black (ÿc6), which the game uses to hide it, is removed.
+export function clean(s, { reverseLines = false, keepLines = false, dropHidden = false } = {}) {
   if (s == null) return s;
-  let t = String(s).replace(/ÿc./g, '').replace(/\[[A-Za-z]+\]/g, '');
+  let t = String(s);
+  if (dropHidden) t = t.replace(/ÿc6[^ÿ]*/g, '');
+  t = t.replace(/ÿc./g, '').replace(/\[[A-Za-z]+\]/g, '');
   let lines = t.split(/\n|\\n/).map(l => l.trim()).filter(Boolean);
   if (reverseLines) lines = lines.reverse();
   if (keepLines) return lines.map(l => l.replace(/\s+/g, ' ')).join('\n');
@@ -92,6 +95,21 @@ export function loadStrings(stringsDir, lang, priority = []) {
     const v = strings.get(key) ?? stringsLower.get(key.toLowerCase());
     return v == null ? null : clean(v, opts);
   };
+}
+
+// Numeric string ids ("id" in the string tables) for the given keys: Map(id -> key).
+// Saves refer to some names (runewords) by this id rather than by a table row.
+export function loadStringIds(stringsDir, keys) {
+  const ids = new Map();
+  for (const f of fs.readdirSync(stringsDir).filter(n => n.endsWith('.json'))) {
+    let entries;
+    try { entries = JSON.parse(readText(path.join(stringsDir, f))); } catch { continue; }
+    if (!Array.isArray(entries)) continue;
+    for (const e of entries) {
+      if (e && keys.has(e.Key) && Number.isInteger(e.id)) ids.set(e.id, e.Key);
+    }
+  }
+  return ids;
 }
 
 export const CLASS_NAMES = {

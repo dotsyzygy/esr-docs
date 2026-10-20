@@ -104,6 +104,9 @@ jobs:
       - name: Generate Vessel of Souls data
         run: node scripts/build-vessel.mjs --esr=esr --report=vessel-report.md
 
+      - name: Generate character page data
+        run: node scripts/build-character.mjs --esr=esr --report=character-report.md
+
       - name: Record build info
         env:
           ESR_SHA: ${{ needs.check.outputs.esr_sha }}
@@ -118,6 +121,8 @@ jobs:
             cat skills-report.md
             echo
             cat vessel-report.md
+            echo
+            cat character-report.md
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Setup Pages

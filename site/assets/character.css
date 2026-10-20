@@ -1,0 +1,207 @@
+/* Character page: the save picker, the character summary, skill trees and item cards styled
+   like the in-game tooltip (centred lines on near-black, the name in its quality colour).
+   Tokens, header, nav and the shared ui- components are in site.css. Quality is never shown
+   by colour alone: every card also names its quality in text. */
+
+:root {
+  --ch-card: #0d0b09;
+}
+
+.ch-intro { max-width: 65rem; margin: 0 0 1rem; }
+.ch-intro p { margin: 0 0 0.5rem; }
+
+/* file picker / drop zone */
+.ch-drop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 1rem;
+  margin: 0 0 0.5rem;
+  background: var(--esr-surface-2);
+  border: 2px dashed var(--esr-border-strong);
+  border-radius: var(--esr-radius);
+}
+.ch-drop.ch-dragging { border-color: var(--esr-accent); background: #2a2016; }
+.ch-drop label { font-weight: 600; }
+.ch-drop input[type="file"] {
+  font: inherit;
+  color: var(--esr-text);
+  max-width: 100%;
+}
+.ch-drop input[type="file"]::file-selector-button {
+  font: inherit;
+  min-height: 2.75rem;
+  margin-right: 0.75rem;
+  padding: 0.3rem 0.9rem;
+  color: var(--esr-text);
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border-strong);
+  border-radius: var(--esr-radius);
+  cursor: pointer;
+}
+.ch-drop input[type="file"]::file-selector-button:hover { border-color: var(--esr-accent); }
+.ch-help { flex-basis: 100%; margin: 0; color: var(--esr-muted); font-size: 0.9rem; }
+.ch-folder {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--esr-border);
+}
+.ch-folder code {
+  padding: 0.3rem 0.5rem;
+  color: var(--esr-text);
+  background: #0b0907;
+  border: 1px solid var(--esr-border);
+  border-radius: var(--esr-radius);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.ch-copied { color: var(--esr-muted); font-size: 0.9rem; }
+.ch-status { color: var(--esr-muted); margin: 0.25rem 0 1rem; min-height: 1.5em; }
+.ch-error p {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: #2a0d0d;
+  border: 1px solid #a33;
+  border-left-width: 4px;
+  border-radius: var(--esr-radius);
+}
+
+/* summary */
+.ch-summary {
+  margin: 0 0 2rem;
+  padding: 1rem 1.25rem;
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-left: 4px solid var(--esr-accent);
+  border-radius: var(--esr-radius);
+}
+.ch-summary h2 { margin: 0; font-family: var(--esr-serif); font-size: 1.7rem; color: var(--esr-accent); }
+.ch-class { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.ch-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; list-style: none; margin: 0 0 0.75rem; padding: 0; }
+.ch-tags li {
+  font-size: 0.85rem;
+  padding: 0.05rem 0.6rem;
+  border: 1px solid var(--esr-border-strong);
+  border-radius: 999px;
+  color: var(--esr-muted);
+}
+
+.ch-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+}
+.ch-facts div { min-width: 0; }
+.ch-facts dt { color: var(--esr-muted); font-size: 0.85rem; }
+.ch-facts dd { margin: 0; font-size: 1.1rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ch-other { margin-top: 1rem; }
+.ch-other summary { cursor: pointer; min-height: 2.5rem; padding: 0.4rem 0; font-weight: 600; }
+.ch-other .ch-help { margin-bottom: 0.5rem; }
+
+/* skills */
+.ch-trees {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+.ch-tree {
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-radius: var(--esr-radius);
+  padding: 0.5rem 1rem 0.75rem;
+}
+.ch-tree h3 { margin: 0.25rem 0 0.5rem; font-size: 1.05rem; color: var(--esr-accent); }
+.ch-tree ul { list-style: none; margin: 0; padding: 0; }
+.ch-tree li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--esr-border);
+}
+.ch-tree li:last-child { border-bottom: 0; }
+.ch-pts { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ch-zero a { color: var(--esr-muted); }
+.ch-zero .ch-pts { color: var(--esr-muted); font-weight: 400; }
+.ch-pts { white-space: nowrap; }
+.ch-plus { color: var(--esr-mod); font-weight: 400; }
+.ch-sub { margin: 1.25rem 0 0.5rem; font-size: 1.1rem; color: var(--esr-accent); }
+.ch-from { color: var(--esr-muted); font-size: 0.9rem; font-weight: 400; }
+.ch-bonuses { margin: 0; padding-left: 1.25rem; }
+.ch-bonuses li + li { margin-top: 0.2rem; }
+.ch-oskills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 0.5rem 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ch-oskills li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-radius: var(--esr-radius);
+}
+.ch-oskills .ch-pts { margin-left: auto; }
+.ch-oskill-from { flex-basis: 100%; }
+
+/* item cards */
+.ch-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ch-item {
+  background: var(--ch-card);
+  border: 1px solid var(--esr-border);
+  border-radius: var(--esr-radius);
+  padding: 0.75rem 0.9rem;
+  text-align: center;
+  font-size: 0.92rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ch-item p { margin: 0; }
+.ch-item-name { font-weight: 700; font-size: 1rem; }
+.ch-base { color: var(--esr-text); }
+.ch-label { color: var(--esr-muted); font-size: 0.85rem; margin-bottom: 0.35rem !important; }
+.ch-props { white-space: pre-line; }
+.ch-mods { list-style: none; margin: 0.35rem 0 0; padding: 0; color: var(--esr-mod); white-space: pre-line; }
+.ch-set-count { margin-top: 0.5rem !important; color: var(--esr-muted); font-size: 0.85rem; }
+.ch-set-mods { color: var(--esr-q-set); }
+.ch-socketed {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0.5rem 0 0;
+  border-top: 1px solid var(--esr-border);
+}
+.ch-socketed > li + li { margin-top: 0.3rem; }
+.ch-socketed .ch-label { font-size: 0.8rem; }
+
+.ch-q-uni { color: var(--esr-q-uni); }
+.ch-q-set { color: var(--esr-q-set); }
+.ch-q-rar { color: var(--esr-q-rar); }
+.ch-q-mag { color: var(--esr-q-mag); }
+.ch-q-crf { color: var(--esr-q-crf); }
+.ch-q-rune { color: var(--esr-q-rune); }
+.ch-q-low { color: var(--esr-q-low); }
+
+.ch-note { color: var(--esr-muted); font-size: 0.9rem; max-width: 65rem; }
+
+@media (max-width: 640px) {
+  .ch-items { grid-template-columns: 1fr; }
+}
