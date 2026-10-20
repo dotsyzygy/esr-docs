@@ -22,6 +22,7 @@ import {
   parseArgs, gamePaths, requireTable, readText, tsvReader, loadStrings,
   CLASS_NAMES, reportTable, bump,
 } from './lib/game-data.mjs';
+import { createStatTemplate, statTextMap } from './lib/stat-text.mjs';
 
 const args = parseArgs();
 
@@ -343,27 +344,11 @@ function lines(d, prefix, count, context, skillKey, { reverse = false } = {}) {
 // Some skills (mostly item oskills such as Magic Mastery) have no description lines at all.
 // Their effect is the stats they grant, so describe those the way the game words them on
 // items: a "%+d%% to Magic Spell Damage" template filled with the passive/aura calc.
-function statTemplate(statKey) {
-  const st = statByKey.get(statKey.toLowerCase());
-  if (!st) return null;
-  const s = str(st.descstrpos) || str(st.descstrneg);
-  if (!s) return null;
-  const pct = s.replace(/%/g, '%%');
-  const before = +st.descval === 2 ? false : st.descval !== '0';
-  const wrap = v => (+st.descval === 0 ? pct : before ? `${v} ${pct}` : `${pct} ${v}`);
-  switch (+st.descfunc) {
-    case 19: return s;
-    case 1: case 12: return wrap('%+d');
-    case 2: return wrap('%d%%');
-    case 3: return wrap('%d');
-    case 4: return wrap('%+d%%');
-    default: return null;
-  }
-}
+const statTemplate = createStatTemplate(statByKey, str);
 
 // skill-rules.json statText rewords a stat whose raw value means little on a skill:
 // { stat: { text, calc } }, where calc wraps the value ({v}), e.g. hpregen in 256ths per frame.
-const statText = new Map(Object.entries(rules.statText || {}).filter(([k]) => !k.startsWith('$')).map(([k, v]) => [k.toLowerCase(), v]));
+const statText = statTextMap(rules.statText);
 
 function statLines(row, context) {
   const out = [];

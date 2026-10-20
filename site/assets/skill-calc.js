@@ -346,7 +346,7 @@
     40: function (l) { return sprintf(l.a, [l.b]); },
     63: function (l, a) { return l.a + ': ' + signed(a) + '% ' + l.b; },
     67: function (l, a) { return l.a + ': ' + signed(a) + ' ' + l.b; },
-    74: function (l, a, b) { return sprintf(l.a, [a, b]); },
+    74: function (l, a, b, c) { return sprintf(l.a, [a, b, c]); },
     75: function (l, a, b) { return sprintf(l.a, [a, b]); },
     76: function (l, a, b) { return sprintf(l.a, [l.b, a, b]); },
     78: function (l) { return sprintf(l.a, [l.b]); },
@@ -355,15 +355,16 @@
 
   function isKnownType(t) { return t === 0 || Object.prototype.hasOwnProperty.call(LINE_TYPES, t); }
 
-  /* line: { t: type, a: textA, b: textB, x: calcA, y: calcB }. Returns the display text
+  /* line: { t: type, a: textA, b: textB, x: calcA, y: calcB, z: optional third value }. Returns the display text
      (may contain "\n" for multi-line strings), or null for hidden lines. */
   Calc.prototype.line = function (rec, line, lvl) {
     if (!line.t) return null;
     var fmt = LINE_TYPES[line.t];
     var a = this.run(rec, line.x, lvl);
     var b = line.y == null || line.y === '' ? 0 : this.run(rec, line.y, lvl);
+    var c = line.z == null || line.z === '' ? 0 : this.run(rec, line.z, lvl);
     var l = { a: line.a || '', b: line.b || '' };
-    var text = fmt ? fmt(l, a, b) : sprintf(l.a, [a, b]);
+    var text = fmt ? fmt(l, a, b, c) : sprintf(l.a, [a, b, c]);
     // The game fills the placeholders in stored order, then draws the lines bottom up.
     text = text.split('\n').reverse().join('\n');
     // Some strings omit the space after a label ("Attack Rating:75"). StrSkill23 is " percent",
@@ -378,7 +379,7 @@
 
   // Does the line's text change with skill level (or character level)? Static text never does.
   function usesCalc(line) {
-    return !!(line.x || line.y) && line.t !== 18 && line.t !== 25 && line.t !== 40 && line.t !== 78;
+    return !!(line.x || line.y || line.z) && line.t !== 18 && line.t !== 25 && line.t !== 40 && line.t !== 78;
   }
 
   /* Split a column of texts (one line at several levels) into a shared label and the varying

@@ -107,6 +107,9 @@ jobs:
       - name: Generate character page data
         run: node scripts/build-character.mjs --esr=esr --report=character-report.md
 
+      - name: Generate class page data
+        run: node scripts/build-classes.mjs --esr=esr --report=classes-report.md
+
       - name: Record build info
         env:
           ESR_SHA: ${{ needs.check.outputs.esr_sha }}
@@ -123,6 +126,8 @@ jobs:
             cat vessel-report.md
             echo
             cat character-report.md
+            echo
+            cat classes-report.md
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Setup Pages

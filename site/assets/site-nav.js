@@ -14,6 +14,10 @@
       description: 'Open one of your character saves to see its base and final attributes, skill levels with gear, and the items and charms behind them. The save is read in your browser and never uploaded.'
     },
     {
+      href: 'classes.html', title: 'Classes',
+      description: 'Class mechanics the skill trees don’t show. So far: the Warlock’s Consume bonus for every demon, at any Consume level and Consume Effect bonus.'
+    },
+    {
       href: 'cube-recipes.html', title: 'Cube Recipes',
       description: 'Every Horadric Cube recipe: crafting, rerolls, upgrades, forging, sockets, runes and gems, searchable by item, rune or mod.'
     },

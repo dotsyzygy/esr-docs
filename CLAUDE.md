@@ -21,12 +21,16 @@ scripts/build-skills.mjs         skills generator
 scripts/skill-rules.json         skills presentation decisions (see below)
 scripts/build-vessel.mjs         Vessel of Souls generator (cubemain rows, via cube-resolve)
 scripts/vessel-rules.json        vessel tiers, limits, colours and texts (see below)
+scripts/build-classes.mjs        Classes page generator (Warlock Consume effects from monpet.txt)
+scripts/class-rules.json         classes presentation decisions (see below)
+scripts/lib/stat-text.mjs        shared stat wording (item-style templates, statText rules)
 scripts/build-character.mjs      Character page data (stat save widths and wording, item bases, names, class skills)
 build.sh                         local build + checks (see Commands)
 site/index.html                  home page: intro + a card per page (assets/home.css)
 site/cube-recipes.html           cube page
 site/skills.html                 skills page
 site/vessel-of-souls.html        Vessel of Souls page (styled after the old vessel_of_souls.htm)
+site/classes.html                Classes page: class mechanics the skill trees don't show (Warlock Consume)
 site/character.html              Character page: pick a .d2s, see attributes, skills, items
 site/assets/site.css             shared tokens, header, nav, .page and ui-* components
 site/assets/site-nav.js          the nav bar and home page cards, from one PAGES list
@@ -48,6 +52,7 @@ node scripts/build-cube-recipes.mjs --strict                         # fail on u
 node scripts/build-skills.mjs --report=skills-report.md              # same --esr/--strict options
 node scripts/build-vessel.mjs --report=vessel-report.md              # same --esr/--strict options
 node scripts/build-character.mjs --report=character-report.md        # same options, plus --save=<a.d2s>[,…]
+node scripts/build-classes.mjs --report=classes-report.md            # same --esr/--strict options
 ```
 
 In VS Code, F5 ("Docs: build and open", `.vscode/launch.json`) runs the "Build docs" task (`build.sh --no-open` via Git Bash) and opens `site/index.html` in Chrome or Edge; Ctrl+Shift+B runs just the build. `build.sh` fails if a generator's `--strict` check fails, a script has a syntax error, a data file doesn't load, or a page references a missing local file, lacks the nav or is missing from `PAGES`. It only warns when a repo is behind its remote, or when a generator prints a `warning: …` line (e.g. a skill that resolves to nothing: no lines, no description, nothing from the rules; listed under "Skills that show nothing" in `skills-report.md`, to be fixed with `extraLines`, `descriptions` or `hideSkills`). Preview by opening `site/index.html` (or any page) directly in a browser; it works over `file://`. After any rules or generator change, rebuild and check `cube-report.md`. The goal is 0 uncategorized rows and 0 unresolved tokens. A few unresolved internal properties are expected. For skills, check `skills-report.md`: the goal is 0 formula warnings, unknown line types, unresolved strings and unformatted lines, and nothing under "Skills with no lines at all" that lacks a description. For the vessel, `vessel-report.md`: 0 unresolved tokens/properties and 0 usage limits that match no recipe.
@@ -107,6 +112,12 @@ Headless Chrome won't go below ~500px wide; to check phone width, load the page 
 - `rules`: regexes on `description`, first match wins: `hide`, `limit`/`times`, or `section` (+ `group`, `outcome` for anointment names).
 - `sections` (ids `tier1`–`tier4`, `completion` keep the old page's anchors; plus `anointments`) with intros (`{cost}` = the tier's common cost, `{souls}` = starting souls), `groupTitles` for tier 1's trigger types, `intro` paragraphs, `conditionText`/`limitText`.
 - `itemColors`: input code → the old page's colour (Heart red, Tail orange, Soul blue, …); the CSS lightens them for AA contrast. Items are always named, so colour is never the only signal.
+
+## How the Classes page works
+
+- **Consume (Warlock):** every demon gives Consume's own aura stats (its skilldesc lines: attributes, life/mana, duration). Each `monpet.txt` row adds its own `consumestat1-5`/`consumecalc1-5`. In the calcs, `sksrc('Consume'.lvl)` becomes `lvl` and `sksrc('Consume'.x)` becomes `skill('consume'.x)`, so `skill-calc.js` evaluates them against Consume's record; `clc2` is `stat('consumeeffect'.accr)`, set from the page's "+% Consume Effect" input.
+- **Who:** rows with a `bindchancecalc` can be bound (sections: Monsters, Super Uniques (`superuniques.txt` names), Bosses (`monstats` `boss`)); rows without one are shown only if a Warlock skill summons them (`summon` column). Other classes' summons and hirelings are hidden (listed in `classes-report.md`). A bind calc that checks `sksrc('Bind Demon'.clcN)` names the item whose stat unlocks it (`clc0` is calc10): the Prime Evils need the elite Ars books. Demons with identical lines merge into one card.
+- **Wording:** item-style templates from `lib/stat-text.mjs`; `statText` in `class-rules.json` folds min/max/length stats into the game's "Adds X-Y … Damage" strings (`with`, calc templates `x`/`y`/`z` over `{1}{2}{3}`), hides duplicates, and words the Ars flag stats; `calcText` gives fixed text for formulas the page can't evaluate (Mephisto's 2% regen from `Player Stats`). Lines may carry a third value `z` (skill-calc line type 74). The goal in `classes-report.md` is 0 undescribed stats, formula warnings, unformatted lines and unnamed monsters.
 
 ## How the Character page works
 

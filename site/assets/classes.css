@@ -1,0 +1,37 @@
+/* Classes page. Tokens, header, nav and the shared ui- components are in site.css.
+   Colour pairs are chosen for WCAG 2.2 AA (>= 4.5:1 for text on --esr-surface and --esr-bg). */
+
+.cl-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.cl-card {
+  min-width: 0;
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-radius: var(--esr-radius);
+  padding: 0.65rem 0.9rem 0.75rem;
+  scroll-margin-top: 7rem;
+}
+.cl-card:target { border-color: var(--esr-focus); }
+
+.cl-base { max-width: 28rem; margin-top: 0.75rem; }
+.cl-base h3 { margin: 0 0 0.35rem; font-size: 1.05rem; color: var(--esr-accent); }
+
+/* the demons that give this bonus: names first, as the card's heading line */
+.cl-demons {
+  list-style: none;
+  margin: 0 0 0.4rem;
+  padding: 0;
+  font-weight: 600;
+  color: var(--esr-accent);
+}
+.cl-demons li { display: inline; }
+.cl-demons li + li::before { content: ", "; color: var(--esr-muted); font-weight: 400; }
+.cl-req { font-weight: 400; font-size: 0.875rem; color: var(--esr-muted); }
+
+.cl-lines { list-style: none; margin: 0; padding: 0; color: var(--esr-mod); }
+.cl-lines li + li { margin-top: 0.15rem; }
