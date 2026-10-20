@@ -1,6 +1,6 @@
 {
   "$comment": "Rules for scripts/build-classes.mjs. Consume effects come from monpet.txt (consumestat/consumecalc); sksrc('Consume'.clc2) is the consumer's Consume Effect bonus.",
-  "maxLevel": 60,
+  "maxLevel": 110,
   "defaultLevel": 20,
   "consume": {
     "class": "war",
