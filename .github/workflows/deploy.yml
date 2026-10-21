@@ -79,16 +79,20 @@ jobs:
       - name: Checkout docs
         uses: actions/checkout@v5
 
-      - name: Checkout game data (excel + strings only)
+      - name: Checkout game data (excel, strings, animation data, loader plugin configs)
         uses: actions/checkout@v5
         with:
           repository: ${{ env.ESR_REPO }}
           ref: ${{ needs.check.outputs.esr_sha }}
           path: esr
           filter: blob:none
+          # not cone mode: AnimData.d2 is a single file
+          sparse-checkout-cone-mode: false
           sparse-checkout: |
-            Eastern_Sun_Resurrected.mpq/data/global/excel
-            Eastern_Sun_Resurrected.mpq/data/local/lng/strings
+            /Eastern_Sun_Resurrected.mpq/data/global/excel/
+            /Eastern_Sun_Resurrected.mpq/data/local/lng/strings/
+            /Eastern_Sun_Resurrected.mpq/data/global/AnimData.d2
+            /d2rloader/config/
 
       - name: Setup Node
         uses: actions/setup-node@v5

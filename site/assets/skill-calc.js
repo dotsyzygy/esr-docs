@@ -133,7 +133,10 @@
   var MISSILE_TOKENS = { en: 'enma', ex: 'exma', eo: 'enms', ey: 'exms', nm: 'pnma', xm: 'pxma' };
 
   /* db: { s: {skill key: record}, m: {missile key: record}, base: [skill keys], stats: {}, aliases: {} }
-     opts: { ulvl, warn(kind, detail) } */
+     opts: { ulvl, warn(kind, detail), character }
+     opts.character evaluates for a real character instead of an unequipped one (the Character
+     page): { skills: {skill key: { blvl, lvl }}, stats: {stat name: value} }, where blvl is the
+     hard points and lvl the level with +skills. Skills it doesn't list are at 0. */
   function Calc(db, opts) {
     opts = opts || {};
     this.db = db;
@@ -143,6 +146,7 @@
     this.base = {};
     for (var i = 0; i < (db.base || []).length; i++) this.base[db.base[i]] = true;
     this.warn = opts.warn || function () {};
+    this.character = opts.character || null;
     this.memo = {};
     this.depth = 0;
   }
@@ -219,7 +223,9 @@
     }
     switch (name) {
       case 'lvl': return lvl;
-      case 'blvl': return rec.mx ? Math.min(lvl, rec.mx) : lvl;
+      case 'blvl':
+        if (this.character) return (this.character.skills[rec.k] || {}).blvl || 0;
+        return rec.mx ? Math.min(lvl, rec.mx) : lvl;
       case 'ulvl': return this.ulvl;
       case 'len': return this.cached(rec, 'len', rec.len, lvl);
       case 'rng': return this.cached(rec, 'rng', rec.rng, lvl);
@@ -279,11 +285,20 @@
     var target, prop = n.path[n.path.length - 1];
     switch (n.f) {
       case 'stat':
+        if (this.character && n.name in this.character.stats) return this.character.stats[n.name] || 0;
         return this.stats[n.name] || 0;
       case 'sksrc':
         return 0;
       case 'skill':
         if (n.name === rec.k) return this.token(rec, prop, lvl);
+        if (this.character) {
+          var own = this.character.skills[n.name];
+          if (!own) return 0;
+          if (prop === 'blvl') return own.blvl;
+          if (prop === 'lvl') return own.lvl;
+          target = this.db.s[n.name];
+          return target ? this.token(target, prop, own.lvl) : 0;
+        }
         // A character without the skill gets 0, except for the basic skills everyone has.
         if (!this.base[n.name]) return 0;
         target = this.db.s[n.name];

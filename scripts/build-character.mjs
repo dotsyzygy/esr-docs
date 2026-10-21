@@ -24,6 +24,8 @@ import {
   CLASS_NAMES, reportTable, bump,
 } from './lib/game-data.mjs';
 import { createCubeResolver } from './lib/cube-resolve.mjs';
+import { skillRecord, missileRecord, formulas } from './lib/skill-records.mjs';
+import { createPropertyResolver } from './lib/property-stats.mjs';
 
 const args = parseArgs();
 
@@ -35,6 +37,8 @@ const OUT_FILE = path.join(path.resolve(ROOT, args.out || 'site'), 'data', `char
 const require = createRequire(import.meta.url);
 const D2S = require(path.join(ROOT, 'site', 'assets', 'd2s.js'));
 const ItemText = require(path.join(ROOT, 'site', 'assets', 'item-text.js'));
+const SkillCalc = require(path.join(ROOT, 'site', 'assets', 'skill-calc.js'));
+const CharCalc = require(path.join(ROOT, 'site', 'assets', 'char-calc.js'));
 
 requireTable(PATHS, 'itemstatcost.txt');
 
@@ -51,6 +55,9 @@ const report = {
   saveErrors: new Map(),
   skippedStats: new Map(),
   unnamed: new Map(),
+  effectWarnings: new Map(),
+  unresolvedBonuses: new Map(),
+  missingEffects: new Map(),
 };
 // Item names match the Cube Recipes page (cube-rules.json itemNames).
 const R = createCubeResolver({ readTsv, str, rules: cubeRules, report });
@@ -133,8 +140,16 @@ for (const file of ['weapons.txt', 'armor.txt', 'misc.txt']) {
     if (isA(r.type, 'play')) f |= 8;
     if (isA(r.type, 'gold')) f |= 16;
     if (num(r.quest) && num(r.questdiffcheck)) f |= 32;
+    if (isA(r.type, 'shie')) f |= 64;
     if (f) it.f = f;
     if (it.k === 'w') {
+      // animation class (one hand, and two hands where the weapon allows it) and speed modifier
+      it.wc = (r.wclass || 'hth').toLowerCase();
+      if (r['2handedwclass'] && r['2handed'] === '1') it.wc = r['2handedwclass'].toLowerCase();
+      if (num(r.speed)) it.sp = num(r.speed);
+      // % damage per point of Strength / Dexterity (StrBonus, DexBonus: 100 = 1% per point)
+      if (num(r.StrBonus)) it.sb = num(r.StrBonus);
+      if (num(r.DexBonus)) it.db = num(r.DexBonus);
       if (num(r.maxdam)) it.d1 = [num(r.mindam), num(r.maxdam)];
       if (num(r['2handmaxdam'])) it.d2 = [num(r['2handmindam']), num(r['2handmaxdam'])];
       if (num(r.maxmisdam)) it.dt = [num(r.minmisdam), num(r.maxmisdam)];
@@ -153,7 +168,37 @@ for (const r of readTsv('uniqueitems.txt')) if (r['*ID'] !== '' && r.index) uniq
 const setNames = new Map(readTsv('sets.txt').map(r => [r.index, str(r.name) || str(r.index) || r.index]));
 const sets = {};
 for (const r of readTsv('setitems.txt')) {
-  if (r['*ID'] !== '' && r.index) sets[r['*ID']] = [str(r.index, { reverseLines: true }) || r.index, setNames.get(r.set) || r.set];
+  if (r['*ID'] !== '' && r.index) sets[r['*ID']] = [str(r.index, { reverseLines: true }) || r.index, setNames.get(r.set) || r.set, r.set];
+}
+
+// Bonuses that aren't on the items: socketed gems and runes (gems.txt, by the kind of item they
+// are in) and the set bonuses for wearing several items of a set (sets.txt). Stats as
+// [id, value, param], from the item properties (lib/property-stats.mjs).
+const resolveProperty = createPropertyResolver({ readTsv });
+const bonus = (code, param, min, max, context) => {
+  if (!code) return [];
+  const out = resolveProperty(code, param, min, max);
+  if (!out) { bump(report.unresolvedBonuses, code, context); return []; }
+  return out.map(st => (st.param ? [st.id, st.value, st.param] : [st.id, st.value]));
+};
+const gems = {};
+for (const r of readTsv('gems.txt')) {
+  if (!r.code) continue;
+  gems[r.code] = ['weapon', 'helm', 'shield'].map(k => [1, 2, 3].flatMap(i =>
+    bonus(r[`${k}Mod${i}Code`], r[`${k}Mod${i}Param`], r[`${k}Mod${i}Min`], r[`${k}Mod${i}Max`], `gems.txt ${r.name}`)));
+}
+const setSizes = new Map();
+for (const r of readTsv('setitems.txt')) if (r.set) setSizes.set(r.set, (setSizes.get(r.set) || 0) + 1);
+const setBonuses = {};
+for (const r of readTsv('sets.txt')) {
+  if (!r.index || !setSizes.has(r.index)) continue;
+  const partial = {};
+  for (let n = 2; n <= 5; n++) {
+    const list = ['a', 'b'].flatMap(x => bonus(r[`PCode${n}${x}`], r[`PParam${n}${x}`], r[`PMin${n}${x}`], r[`PMax${n}${x}`], `sets.txt ${r.index}`));
+    if (list.length) partial[n] = list;
+  }
+  const full = [1, 2, 3, 4, 5, 6, 7, 8].flatMap(i => bonus(r[`FCode${i}`], r[`FParam${i}`], r[`FMin${i}`], r[`FMax${i}`], `sets.txt ${r.index}`));
+  setBonuses[r.index] = { n: setSizes.get(r.index), p: partial, f: full };
 }
 
 const affixNames = file => readTsv(file).map(r => (r.Name ? str(r.Name) || r.Name : ''));
@@ -197,7 +242,19 @@ for (const r of readTsv('charstats.txt')) {
 const classIndex = new Map(classes.map((c, i) => [c.id, i]));
 
 const descByKey = new Map(readTsv('skilldesc.txt').map(d => [d.skilldesc, d]));
+// stat names in numbered columns, keeping their positions (aurastatcalc N goes with aurastat N)
+const slotsOf = (r, col, n) => {
+  const out = Array.from({ length: n }, (_, i) => r[`${col}${i + 1}`] || '');
+  while (out.length && !out[out.length - 1]) out.pop();
+  return out;
+};
 const skills = [];
+// Skills whose stats can apply to the character, by id: { k: skills.txt key (the Skills page's
+// formula records), kind, as: aura stat names, ps: passive stat names }. kind is
+// "buff" (cast with a duration, a state on the caster), "aura" or "passive" (always on).
+const effects = {};
+// skills.txt keys (the Skills page's formula keys) where they aren't the lower-cased name
+const skillKeys = {};
 for (const r of readTsv('skills.txt')) {
   if (r['*Id'] === '') continue;
   const d = descByKey.get(r.skilldesc);
@@ -208,7 +265,139 @@ for (const r of readTsv('skills.txt')) {
     classes[ci].skills.push(+r['*Id']);
   }
   skills[+r['*Id']] = entry;
+  if (r.skill.toLowerCase() !== entry[0].toLowerCase()) skillKeys[r['*Id']] = r.skill.toLowerCase();
+  const as = slotsOf(r, 'aurastat', 6);
+  const ps = slotsOf(r, 'passivestat', 14);
+  let kind = null;
+  if (r.passive === '1' && ps.length) kind = 'passive';
+  else if (r.aura === '1' && as.length) kind = 'aura';
+  else if (as.length && r.auralencalc && r.aurastate) kind = 'buff';
+  if (kind) effects[r['*Id']] = { k: r.skill.toLowerCase(), kind, as, ps };
 }
+
+// Formula records for the skills a character can have: every class skill, every skill an item
+// grants (skill-rules.json grantProperties on uniques, set items, sets, runewords and affixes),
+// the buff/aura/passive skills, and the skills and missiles they reach through sklvl()/miss() or
+// their description missiles. The same records as the Skills page's, built with
+// lib/skill-records.mjs, plus what damage needs: sd (SrcDam, % weapon damage in 128ths),
+// an (animation mode) and et (element). site/assets/char-calc.js evaluates them with
+// skill-calc.js for the character's skill levels and stats.
+const skillRules = JSON.parse(readText(path.join(HERE, 'skill-rules.json')));
+const withoutComments = o => Object.fromEntries(Object.entries(o || {}).filter(([k]) => !k.startsWith('$')));
+const calcDb = { s: {}, m: {}, base: (skillRules.baseSkills || []).map(x => x.toLowerCase()), stats: {}, aliases: withoutComments(skillRules.tokenAliases) };
+{
+  const rowByKey = new Map();
+  const rowById = new Map();
+  for (const r of readTsv('skills.txt')) {
+    if (r.skill && !rowByKey.has(r.skill.toLowerCase())) rowByKey.set(r.skill.toLowerCase(), r);
+    if (r['*Id'] !== '') rowById.set(r['*Id'], r);
+  }
+  const missileByKey = new Map(readTsv('missiles.txt').filter(m => m.Missile).map(m => [m.Missile.toLowerCase(), m]));
+  const keyOf = p => { const r = /^\d+$/.test(p) ? rowById.get(p) : rowByKey.get(String(p).toLowerCase()); return r ? r.skill.toLowerCase() : null; };
+
+  const grants = new Set(skillRules.grantProperties || []);
+  const granted = new Set();
+  const scan = (file, slots) => {
+    if (!fs.existsSync(path.join(PATHS.excel, file))) return;
+    for (const r of readTsv(file)) for (const [code, param] of slots) if (grants.has(r[code]) && r[param]) { const k = keyOf(r[param]); if (k) granted.add(k); }
+  };
+  const n = (count, f) => Array.from({ length: count }, (_, i) => f(i + 1));
+  scan('uniqueitems.txt', n(12, i => [`prop${i}`, `par${i}`]));
+  scan('setitems.txt', [...n(9, i => [`prop${i}`, `par${i}`]), ...n(5, i => [[`aprop${i}a`, `apar${i}a`], [`aprop${i}b`, `apar${i}b`]]).flat()]);
+  scan('sets.txt', [...n(4, i => [[`PCode${i + 1}a`, `PParam${i + 1}a`], [`PCode${i + 1}b`, `PParam${i + 1}b`]]).flat(), ...n(8, i => [`FCode${i}`, `FParam${i}`])]);
+  scan('runes.txt', n(7, i => [`T1Code${i}`, `T1Param${i}`]));
+  scan('magicprefix.txt', n(3, i => [`mod${i}code`, `mod${i}param`]));
+  scan('magicsuffix.txt', n(3, i => [`mod${i}code`, `mod${i}param`]));
+
+  const classKeys = [...rowByKey.values()].filter(r => r.charclass).map(r => r.skill.toLowerCase());
+  const queue = [...new Set([...Object.values(effects).map(e => e.k), ...classKeys, ...granted])];
+  const refRe = /\b(sklvl|miss)\s*\(\s*'([^']+)'/gi;
+  while (queue.length) {
+    const key = queue.shift();
+    const row = rowByKey.get(key);
+    if (calcDb.s[key] || !row) continue;
+    const rec = skillRecord(row, descByKey.get(row.skilldesc));
+    delete rec.mn; delete rec.th; delete rec.rng; delete rec.pet;
+    if (num(row.SrcDam)) rec.sd = num(row.SrcDam);
+    if (row.anim) rec.an = row.anim;
+    if (row.EType) rec.et = row.EType;
+    // damage conversion is on the missile the skill fires: pSrvDmgFunc 1 with DmgCalc1 = the %
+    // of physical damage converted to the missile's EType (dl12 = dParam1 + dParam2 per level)
+    const sm = (row.srvmissile || '').toLowerCase();
+    const mr = sm && missileByKey.get(sm);
+    if (mr && mr.pSrvDmgFunc === '1' && mr.DmgCalc1 && mr.EType) {
+      rec.cv = { c: mr.DmgCalc1, p: [num(mr.dParam1), num(mr.dParam2)], et: mr.EType };
+      if (mr.ApplyMastery === '1') rec.cv.am = 1;
+    }
+    calcDb.s[key] = rec;
+    const texts = formulas(rec);
+    for (const m of rec.ms || []) texts.push(`miss('${m}'.x)`);
+    for (const t of texts) {
+      for (const m of t.matchAll(refRe)) {
+        const target = m[2].toLowerCase();
+        if (m[1].toLowerCase() === 'sklvl') { queue.push(target); continue; }
+        const mr = missileByKey.get(target);
+        if (mr && !calcDb.m[target]) calcDb.m[target] = missileRecord(mr);
+      }
+    }
+  }
+}
+
+// Animations for breakpoints (AnimData.d2): "<token><mode><weapon class>" -> [frames, speed], for
+// the player classes' tokens. FCR's cap comes from ESR's cast-rate-cap plugin config when present.
+const CLASS_TOKENS = { ama: 'AM', sor: 'SO', nec: 'NE', pal: 'PA', bar: 'BA', dru: 'DZ', ass: 'AI', war: 'WL' };
+classes.forEach(c => { c.token = CLASS_TOKENS[c.id]; });
+const anim = {};
+{
+  const file = path.join(PATHS.data, 'global', 'AnimData.d2');
+  if (fs.existsSync(file)) {
+    const b = fs.readFileSync(file);
+    const tokens = new Set(Object.values(CLASS_TOKENS));
+    let p = 0;
+    for (let block = 0; block < 256 && p + 4 <= b.length; block++) {
+      const count = b.readUInt32LE(p); p += 4;
+      for (let i = 0; i < count; i++, p += 160) {
+        const name = b.toString('latin1', p, p + 8).replace(/\0.*$/s, '');
+        if (tokens.has(name.slice(0, 2))) anim[name] = [b.readUInt32LE(p + 8), b.readUInt32LE(p + 12)];
+      }
+    }
+  } else bump(report.missingStrings, 'AnimData.d2', 'not found: no breakpoints');
+}
+let fcrCap = 200;
+{
+  const file = path.join(PATHS.esr, 'd2rloader', 'config', 'celestialrayone.cast-rate-cap.toml');
+  if (fs.existsSync(file)) {
+    const t = readText(file);
+    const on = /^\s*enabled\s*=\s*true/m.test(t);
+    const m = /^\s*fcr_cap\s*=\s*(\d+)/m.exec(t);
+    if (on && m) fcrCap = +m[1];
+  }
+}
+
+// Crushing blow's share of the target's current life per target type, from ESR's crushing-blow
+// plugin: vanilla's melee share (25%, 12.5% for super uniques and act bosses) x the plugin's
+// percent; ranged hits get [attack] ranged percent of that. Vanilla without the config.
+const crush = { targets: { monster: 25, champion: 25, unique: 25, minion: 25, super_unique: 12.5, act_boss: 12.5 }, ranged: 50 };
+{
+  const file = path.join(PATHS.esr, 'd2rloader', 'config', 'celestialrayone.crushing-blow.toml');
+  if (fs.existsSync(file)) {
+    const t = readText(file);
+    if (/^\s*enabled\s*=\s*true/m.test(t)) {
+      let sectionName = '';
+      for (const line of t.split(/\r?\n/)) {
+        const sec = /^\s*\[([^\]]+)\]/.exec(line);
+        if (sec) { sectionName = sec[1].trim(); continue; }
+        const kv = /^\s*([a-z_]+)\s*=\s*([\d.]+)/.exec(line);
+        if (!kv) continue;
+        if (sectionName === 'targets' && kv[1] in crush.targets) crush.targets[kv[1]] = crush.targets[kv[1]] * +kv[2] / 100;
+        if (sectionName === 'attack' && kv[1] === 'ranged') crush.ranged = +kv[2];
+      }
+    }
+  }
+}
+
+// Resistance penalty per difficulty (difficultylevels.txt; ESR's are much harsher than retail).
+const difficulty = readTsv('difficultylevels.txt').filter(r => r.Name).map(r => ({ n: r.Name, rp: num(r.ResistPenalty) }));
 
 const TEXT_KEYS = [
   'strModEnhancedDamage', 'strModMinDamage', 'strModMinDamageRange',
@@ -222,8 +411,8 @@ const data = {
   generatedAt: new Date().toISOString(),
   source: crypto.createHash('sha1').update(readText(path.join(PATHS.excel, 'itemstatcost.txt'))).digest('hex').slice(0, 12),
   lang: LANG,
-  stats, statIds, paired, items, uniques, sets, prefixes, suffixes, runewords, monsters, montypes,
-  skills: Array.from(skills, s => s || null), classes, text: textOut,
+  stats, statIds, paired, items, uniques, sets, setBonuses, gems, difficulty, anim, fcrCap, crush, prefixes, suffixes, runewords, monsters, montypes,
+  skills: Array.from(skills, s => s || null), skillKeys, effects, calc: calcDb, classes, text: textOut,
 };
 
 fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
@@ -238,6 +427,8 @@ const saveFiles = typeof args.save === 'string'
   ? args.save.split(',').map(f => path.resolve(ROOT, f))
   : fs.readdirSync(ROOT).filter(f => f.toLowerCase().endsWith('.d2s')).map(f => path.join(ROOT, f));
 const wording = ItemText.create(data);
+let warnContext = '';
+const charCalc = CharCalc.create({ data, SkillCalc, wording, warn: (kind, detail) => bump(report.effectWarnings, `${kind}: ${detail}`, warnContext) });
 
 function walk(list, f) {
   for (const it of list) { f(it); walk(it.socketed || [], f); }
@@ -266,7 +457,14 @@ for (const file of saveFiles) {
   if (cls && save.skills.length !== cls.skills.length) {
     bump(report.saveErrors, label, `${save.skills.length} skill slots but ${cls.name} has ${cls.skills.length} skills in skills.txt`);
   }
-  report.saves.push(`${label}: ${h.name}, level ${h.level} ${cls?.name ?? `class ${h.classId}`}, ${count} items (${save.merc.length} on the mercenary)`);
+  // every buff, aura and passive the character could have, switched on
+  warnContext = label;
+  const all = charCalc.compute(save);
+  const on = Object.fromEntries(all.effects.map(e => [e.key, true]));
+  const model = charCalc.compute(save, { on });
+  for (const e of model.effects) if (e.missing && e.level) bump(report.missingEffects, `${e.name} (${e.k})`, label);
+  const casts = model.effects.filter(e => e.casts > 1).map(e => `${e.name} ${e.levels.join('→')}`);
+  report.saves.push(`${label}: ${h.name}, level ${h.level} ${cls?.name ?? `class ${h.classId}`}, ${count} items (${save.merc.length} on the mercenary), ${model.effects.length} buffs/auras/passives, settles in ${model.rounds} round(s)${casts.length ? ` (recast: ${casts.join(', ')})` : ''}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -285,13 +483,16 @@ ${report.saves.length ? report.saves.map(s => `- ${s}`).join('\n') : 'None (put 
 ${reportTable('Saves that failed to parse', report.saveErrors)}
 ${reportTable('Stats the page hides (no description in the game data)', report.skippedStats)}
 ${reportTable('Items without a name in the data', report.unnamed)}
+${reportTable('Gem and set bonuses left out (property not resolved)', report.unresolvedBonuses)}
+${reportTable('Buffs, auras and passives without formula records', report.missingEffects)}
+${reportTable('Formula warnings (buffs, auras, passives; all on)', report.effectWarnings)}
 ${reportTable('Stats missing from itemstatcost.txt', report.missingStats)}
 ${reportTable('Missing strings', report.missingStrings)}
 `;
 
 if (typeof args.report === 'string') fs.writeFileSync(path.resolve(ROOT, args.report), md);
 console.log(`character: ${Object.keys(stats).length} stats, ${Object.keys(items).length} item bases -> ${path.relative(ROOT, OUT_FILE)} (${(json.length / 1024).toFixed(0)} KB)`);
-console.log(`  test-parsed saves: ${report.saves.length}, failed: ${report.saveErrors.size}, hidden stats: ${report.skippedStats.size}, unnamed items: ${report.unnamed.size}`);
+console.log(`  test-parsed saves: ${report.saves.length}, failed: ${report.saveErrors.size}, hidden stats: ${report.skippedStats.size}, unnamed items: ${report.unnamed.size}, effect formula warnings: ${report.effectWarnings.size}, effects without formulas: ${report.missingEffects.size}`);
 
 if (args.strict && (report.saveErrors.size || report.missingStats.size)) {
   console.error('strict: a save failed to parse, or a stat the save layout needs is missing');
