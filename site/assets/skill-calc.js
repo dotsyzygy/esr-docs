@@ -276,7 +276,7 @@
       return div(len * (100 + this.run(rec, src.lsym, lvl)), 100);
     }
     var raw = levelled(physical ? src.pd : src.ed, max ? 6 : 0, DAMAGE_STEPS, lvl) * scale;
-    var synergy = which.charAt(1) === 'n' || physical; // en.., ex.., pnma, pxma
+    var synergy = which.charAt(1) !== 'd' || physical; // en.., ex.., pnma, pxma
     if (synergy) raw = div(raw * (100 + this.run(rec, physical ? src.psym : src.esym, lvl)), 100);
     return /s$/.test(which) ? raw : div(raw, 256);
   };
