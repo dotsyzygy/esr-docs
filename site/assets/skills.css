@@ -134,3 +134,73 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* skill detail page (skill.html) */
+.sk-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0;
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  font-size: 0.9rem;
+}
+.sk-crumbs li + li::before { content: "›"; margin: 0 0.5rem; color: var(--esr-muted); }
+.sk-crumbs [aria-current] { color: var(--esr-text); text-decoration: none; }
+
+.sk-detail-toolbar { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(9rem, 14rem)); margin: 1rem 0 1.5rem; }
+.sk-toolbar-name {
+  align-self: center;
+  margin: 0;
+  font-family: var(--esr-serif);
+  font-size: 1.5rem;
+  color: var(--esr-accent);
+  overflow-wrap: anywhere;
+}
+/* below 900px the bar isn't sticky (site.css) and sits right under the title */
+@media (max-width: 900px) {
+  .sk-detail-toolbar { grid-template-columns: repeat(2, minmax(9rem, 14rem)); }
+  .sk-toolbar-name { display: none; }
+}
+.sk-detail-section > h2 { font-size: 1.3rem; }
+.sk-detail-section .sk-lines { font-size: 1.05rem; }
+
+.sk-syn-list { max-width: 44rem; }
+.sk-syn-list li { padding: 0.15rem 0; }
+.sk-syn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  border-bottom: 1px solid var(--esr-border);
+}
+.sk-syn-field { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--esr-muted); }
+.sk-syn-field input {
+  font: inherit;
+  width: 4.5rem;
+  min-height: 2.5rem;
+  padding: 0.3rem 0.5rem;
+  color: var(--esr-text);
+  background: #0b0907;
+  border: 1px solid var(--esr-border-strong);
+  border-radius: var(--esr-radius);
+}
+.sk-syn-list + .sk-sub, .sk-syn-actions { margin-top: 1rem; }
+.sk-syn-status { margin: 0; }
+
+.sk-table-tall { max-height: 70vh; }
+
+.sk-related { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1.25rem; margin: 0; }
+.sk-related dt { font-weight: 600; color: var(--esr-muted); }
+.sk-related dd { margin: 0; }
+.sk-related ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; list-style: none; margin: 0; padding: 0; }
+@media (max-width: 40rem) {
+  .sk-detail-toolbar { grid-template-columns: 1fr 1fr; }
+  .sk-detail-toolbar .ui-field:first-child { grid-column: auto; }
+  .sk-related { grid-template-columns: 1fr; }
+  .sk-related dd { margin-bottom: 0.5rem; }
+}
+
+/* skills page: link from a card to its detail page */
+.sk-more { display: inline-block; margin-top: 0.65rem; font-weight: 600; }

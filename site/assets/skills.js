@@ -371,9 +371,12 @@
     ]);
     c.scaling.addEventListener('toggle', function () { if (c.scaling.open) buildTable(s); });
 
+    c.titleLink = el('a', { href: detailHref(s), text: s.n });
+    var more = s.sy || s.sl ? 'Full details and synergies' : 'Full details';
+    c.moreLink = el('a', { class: 'sk-more', href: detailHref(s), 'aria-label': more + ': ' + s.n, text: more });
     c.el = el('article', { class: 'sk-skill', id: s.id, 'aria-labelledby': 't-' + s.id }, [
       el('header', null, [
-        el(hTitle, { id: 't-' + s.id }, [el('a', { href: '#' + s.id, text: s.n })]),
+        el(hTitle, { id: 't-' + s.id }, [c.titleLink]),
         !other && cls ? el('p', { class: 'sk-where', text: cls.title + ' · ' + s._tree }) : null
       ]),
       el('ul', { class: 'sk-tags', 'aria-label': 'Requirements' }, tags.map(function (t) { return el('li', { text: t }); })),
@@ -382,10 +385,20 @@
       s.l ? el('div', { class: 'sk-block' }, [c.levelHead, c.current]) : null,
       c.synergies ? el('div', { class: 'sk-block' }, [el(hSub, { class: 'sk-sub', text: 'Synergies and bonuses' }), c.synergies]) : null,
       (s.l || []).concat(s.g || []).some(SkillCalc.usesCalc) ? c.scaling : null,
-      s.src ? sources(s) : null
+      s.src ? sources(s) : null,
+      c.moreLink
     ]);
     s._card = c;
     return c;
+  }
+
+  // The skill's own page (skill.html), at the levels chosen here.
+  function detailHref(s) {
+    var p = new URLSearchParams();
+    p.set('skill', s.id);
+    if (state.slvl !== DEFAULT_SLVL) p.set('slvl', state.slvl);
+    if (state.clvl !== DEFAULT_CLVL) p.set('clvl', state.clvl);
+    return 'skill.html#' + p.toString();
   }
 
   function fillLines(list, s, lines, lvl) {
@@ -401,6 +414,7 @@
     var c = s._card;
     if (!c || !c.stale) return;
     c.stale = false;
+    c.titleLink.href = c.moreLink.href = detailHref(s);
     c.levelHead.textContent = 'At skill level ' + state.slvl + (s._ulvl ? ', character level ' + state.clvl : '');
     if (c.general) fillLines(c.general, s, s.g, state.slvl);
     if (s.l) fillLines(c.current, s, s.l, state.slvl);

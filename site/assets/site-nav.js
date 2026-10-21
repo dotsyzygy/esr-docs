@@ -3,7 +3,8 @@
    <nav id="site-nav"> in its header followed by this script, which fills it in
    synchronously (so there is no layout shift). The home page also has an empty
    <ul id="site-pages">, which gets a card for every page with a description.
-   To add a page, add it to PAGES. */
+   To add a page, add it to PAGES. A page with a `parent` (the skill detail page) gets no link
+   of its own; its parent's link is marked as the current page. */
 (function () {
   'use strict';
 
@@ -25,6 +26,7 @@
       href: 'skills.html', title: 'Skills',
       description: 'Every class skill tree plus the skills items grant (oskills, chance to cast, charges), with values at any skill level and character level up to 110.'
     },
+    { href: 'skill.html', title: 'Skill', parent: 'skills.html' },
     {
       href: 'vessel-of-souls.html', title: 'Vessel of Souls',
       description: 'The mythical amulet that consumes organs: every tier bonus and its soul cost, the weapon transforms and the anointments.'
@@ -39,11 +41,13 @@
   }
 
   var here = decodeURIComponent(location.pathname.split('/').pop() || 'index.html');
+  PAGES.forEach(function (p) { if (p.parent && p.href === here) here = p.parent; });
 
   var nav = document.getElementById('site-nav');
   if (nav) {
     var list = el('ul');
     PAGES.forEach(function (p) {
+      if (p.parent) return;
       var a = el('a', { href: p.href }, p.title);
       if (p.href === here) a.setAttribute('aria-current', 'page');
       var li = el('li');

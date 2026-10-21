@@ -133,7 +133,9 @@
   var MISSILE_TOKENS = { en: 'enma', ex: 'exma', eo: 'enms', ey: 'exms', nm: 'pnma', xm: 'pxma' };
 
   /* db: { s: {skill key: record}, m: {missile key: record}, base: [skill keys], stats: {}, aliases: {} }
-     opts: { ulvl, warn(kind, detail), character }
+     opts: { ulvl, warn(kind, detail), character, levels }
+     opts.levels sets other skills' levels for an otherwise unequipped character (the skill
+     detail page's synergy points): { skill key: { blvl, lvl } }.
      opts.character evaluates for a real character instead of an unequipped one (the Character
      page): { skills: {skill key: { blvl, lvl }}, stats: {stat name: value} }, where blvl is the
      hard points and lvl the level with +skills. Skills it doesn't list are at 0. */
@@ -147,6 +149,7 @@
     for (var i = 0; i < (db.base || []).length; i++) this.base[db.base[i]] = true;
     this.warn = opts.warn || function () {};
     this.character = opts.character || null;
+    this.levels = opts.levels || null;
     this.memo = {};
     this.depth = 0;
   }
@@ -158,6 +161,8 @@
     var ast = compile(src);
     if (ast.k === 'err') { this.warn('parse', src + ' (' + ast.msg + ')'); return 0; }
     if (++this.depth > 60) { this.depth--; this.warn('recursion', rec.k + ': ' + src); return 0; }
+    // The skill being described: other skills' formulas that read it back get its level.
+    if (this.depth === 1) this.self = { k: rec.k, lvl: lvl };
     try { return this.node(ast, rec, lvl); } finally { this.depth--; }
   };
 
@@ -165,6 +170,8 @@
   Calc.prototype.cached = function (rec, key, src, lvl) {
     if (src == null || src === '') return 0;
     var id = rec.k + '\u0000' + key + '\u0000' + lvl;
+    // Another skill's value may read the described skill's level (Attack's curse total).
+    if (this.self && this.self.k !== rec.k) id += '\u0000' + this.self.k + '\u0000' + this.self.lvl;
     if (!(id in this.memo)) {
       this.memo[id] = 0; // breaks self-reference loops
       this.memo[id] = this.run(rec, src, lvl);
@@ -299,6 +306,18 @@
           target = this.db.s[n.name];
           return target ? this.token(target, prop, own.lvl) : 0;
         }
+        if (this.levels && this.levels[n.name]) {
+          var set = this.levels[n.name];
+          if (prop === 'blvl') return set.blvl;
+          if (prop === 'lvl') return set.lvl;
+          target = this.db.s[n.name];
+          return target ? this.token(target, prop, set.lvl) : 0;
+        }
+        // Read back from another skill's formula: the described skill at its own level.
+        if (this.self && n.name === this.self.k) {
+          target = this.db.s[n.name];
+          return target ? this.token(target, prop, this.self.lvl) : 0;
+        }
         // A character without the skill gets 0, except for the basic skills everyone has.
         if (!this.base[n.name]) return 0;
         target = this.db.s[n.name];
@@ -431,8 +450,41 @@
     return { label: '', cells: texts.slice() };
   }
 
+  /* Other skills a skill's numbers depend on: every skill('Name'.prop) in its record, its
+     description lines and its description missiles. Returns { skill key: { blvl, lvl } } with
+     true for each property used (blvl: hard points, as synergies use; lvl: with +skills). */
+  var SKILL_REF = /skill\s*\(\s*'([^']+)'\s*\.\s*(\w+)\s*\)/gi;
+  function skillRefs(db, rec, lines) {
+    var out = {}, seen = {};
+    function walk(v, texts) {
+      if (typeof v === 'string') texts.push(v);
+      else if (v && typeof v === 'object') for (var k in v) walk(v[k], texts);
+      return texts;
+    }
+    // A value read from another skill (skill('Attack'.clc1)) brings that skill's references too.
+    (function scan(r, extra) {
+      seen[r.k] = true;
+      walk([r, extra, (r.ms || []).map(function (m) { return db.m[m]; })], []).forEach(function (t) {
+        var m;
+        SKILL_REF.lastIndex = 0;
+        var found = [];
+        while ((m = SKILL_REF.exec(t))) found.push([m[1].toLowerCase(), m[2].toLowerCase()]);
+        found.forEach(function (f) {
+          var key = f[0], prop = f[1];
+          if (prop !== 'blvl' && prop !== 'lvl' && db.s[key] && !seen[key]) scan(db.s[key]);
+          if (key === rec.k) return;
+          var o = out[key] || (out[key] = { blvl: false, lvl: false });
+          if (prop === 'blvl') o.blvl = true;
+          else o.lvl = true;
+        });
+      });
+    })(rec, lines);
+    return out;
+  }
+
   return {
     parse: parse,
+    skillRefs: skillRefs,
     compile: compile,
     Calc: Calc,
     sprintf: sprintf,

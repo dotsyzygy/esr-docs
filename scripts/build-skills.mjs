@@ -53,6 +53,7 @@ const report = {
   undescribedStats: new Map(),
   noLines: new Map(),
   emptySkills: new Map(),
+  unmodelledSynergies: new Map(),
   missileLines: new Map(),
   classCounts: new Map(),
 };
@@ -480,14 +481,55 @@ const db = { s: {}, m: {}, base: baseKeys, stats: rules.stats || {}, aliases: wi
   }
 }
 
-// Validate: evaluate every line at every skill level, at the lowest and highest character level.
+// Synergies for the skill detail page: the class skills shown here that a skill's formulas
+// read. sy: read by hard points (blvl, at most SYNERGY_POINTS); sl: only by level with +skills.
+// Other references (item-effect skills like "Eschuta Temper Passive") stay at 0, and so a
+// reference that only counts alongside one (Zap for Fire Ball) changes nothing and is dropped.
+const SYNERGY_POINTS = rules.synergyPoints || 20;
+{
+  const idByKey = new Map();
+  for (const e of entries) if (e.c !== 'other' && !idByKey.has(e.k)) idByKey.set(e.k, e.id);
+  const plain = new SkillCalc.Calc(db, { ulvl: MAX_LEVEL });
+  const texts = (calc, e) => [1, 20, MAX_LEVEL].flatMap(lvl => [...(e.g || []), ...(e.l || [])].map(line => calc.line(db.s[e.k], line, lvl))).join('\n');
+  for (const e of entries) {
+    const refs = SkillCalc.skillRefs(db, db.s[e.k], [e.g, e.l, e.s]);
+    const sy = [], sl = [];
+    const base = texts(plain, e);
+    for (const [key, r] of Object.entries(refs)) {
+      const id = idByKey.get(key);
+      if (!id) continue;
+      const levels = { [key]: { blvl: r.blvl ? SYNERGY_POINTS : 0, lvl: r.blvl ? SYNERGY_POINTS : MAX_LEVEL } };
+      if (texts(new SkillCalc.Calc(db, { ulvl: MAX_LEVEL, levels }), e) === base) continue;
+      (r.blvl ? sy : sl).push(id);
+    }
+    if (sy.length) e.sy = sy;
+    if (sl.length) e.sl = sl;
+    // Synergy lines name skills, but the detail page found nothing to adjust: the bonus works
+    // through something the evaluator doesn't model (passive stats read back with stat()).
+    const named = (e.s || []).filter(l => l.t === 76 || l.t === 79).map(l => l.b);
+    if (e.c !== 'other' && named.length && !sy.length && !sl.length) bump(report.unmodelledSynergies, e.n, named.join(', '));
+  }
+}
+
+// Validate: evaluate every line at every skill level, at the lowest and highest character level,
+// with no synergies and with every synergy at its cap.
 let evaluated = 0;
-for (const ulvl of [1, MAX_LEVEL]) {
+const keyById = new Map(entries.map(e => [e.id, e.k]));
+for (const [ulvl, maxed] of [[1, false], [MAX_LEVEL, false], [MAX_LEVEL, true]]) {
   let current = '';
-  const calc = new SkillCalc.Calc(db, { ulvl, warn: (kind, detail) => bump(report.calcWarnings, `${kind}: ${detail}`, current) });
+  const warn = (kind, detail) => bump(report.calcWarnings, `${kind}: ${detail}`, current);
+  const plain = new SkillCalc.Calc(db, { ulvl, warn });
   for (const e of entries) {
     current = e.n;
     const rec = db.s[e.k];
+    let calc = plain;
+    if (maxed) {
+      if (!e.sy && !e.sl) continue;
+      const levels = {};
+      for (const id of e.sy || []) levels[keyById.get(id)] = { blvl: SYNERGY_POINTS, lvl: SYNERGY_POINTS };
+      for (const id of e.sl || []) levels[keyById.get(id)] = { blvl: 0, lvl: MAX_LEVEL };
+      calc = new SkillCalc.Calc(db, { ulvl, warn, levels });
+    }
     for (const line of [...(e.g || []), ...(e.l || []), ...(e.s || [])]) {
       for (let lvl = 1; lvl <= MAX_LEVEL; lvl++) {
         const t = calc.line(rec, line, lvl);
@@ -519,7 +561,7 @@ const data = {
   source: crypto.createHash('sha1').update(skillText).update(readText(path.join(PATHS.excel, 'skilldesc.txt'))).digest('hex').slice(0, 12),
   lang: LANG,
   notes: rules.pageNotes || [],
-  levels: { max: MAX_LEVEL, skill: rules.defaultSkillLevel || 20, character: rules.defaultCharacterLevel || MAX_LEVEL },
+  levels: { max: MAX_LEVEL, skill: rules.defaultSkillLevel || 20, character: rules.defaultCharacterLevel || MAX_LEVEL, synergy: SYNERGY_POINTS },
   classes: outClasses,
   skills: entries,
   db,
@@ -554,6 +596,7 @@ ${reportTable('Granted stats with no description', report.undescribedStats)}
 ${reportTable('Weapon-damage lines from the missile a skill fires (no skilldesc lines)', report.missileLines)}
 ${reportTable('Skills with no lines at all', report.noLines)}
 ${reportTable('Skills that show nothing (no lines, no description) - to be addressed', report.emptySkills)}
+${reportTable('Skills whose synergy lines have no adjustable synergies on the detail page', report.unmodelledSynergies)}
 `;
 
 if (typeof args.report === 'string') fs.writeFileSync(path.resolve(ROOT, args.report), md);

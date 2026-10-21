@@ -1,7 +1,7 @@
 {
   "$comment": "Rules for scripts/build-skills.mjs. Values on the page are for an unequipped character with no points in other skills; 'stats' sets the stat('…'.accr) values that are not 0 on such a character, and 'baseSkills' are the skills every character has at level 1.",
   "pageNotes": [
-    "Values assume no items and no points in other skills. Bonuses from synergies are listed under each skill and are not included in the numbers.",
+    "Values assume no items and no points in other skills. Bonuses from synergies are listed under each skill and are not included in the numbers here; open a skill to set synergy points and see every level.",
     "Pick a skill level and character level to see the values the game would show. Some skills scale with character level as well as skill level."
   ],
   "maxLevel": 110,
