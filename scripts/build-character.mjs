@@ -321,6 +321,9 @@ const calcDb = { s: {}, m: {}, base: (skillRules.baseSkills || []).map(x => x.to
     if (num(row.SrcDam)) rec.sd = num(row.SrcDam);
     if (row.anim) rec.an = row.anim;
     if (row.EType) rec.et = row.EType;
+    // a timed state on the caster that fires no missile, has no % weapon damage and describes no
+    // damage is a buff (Energy Shield, Bone Armor), even when its damage columns hold numbers
+    if (row.aurastate && row.auralencalc && !['srvmissile', 'srvmissilea', 'srvmissileb', 'srvmissilec'].some(c => row[c]) && !num(row.SrcDam) && !num(descByKey.get(row.skilldesc)?.descdam)) rec.nd = 1;
     // damage conversion is on the missile the skill fires: pSrvDmgFunc 1 with DmgCalc1 = the %
     // of physical damage converted to the missile's EType (dl12 = dParam1 + dParam2 per level)
     const sm = (row.srvmissile || '').toLowerCase();

@@ -412,7 +412,7 @@
         var lv = model.skills[id];
         var rec = db.s[skillKey(id)];
         if (!rec || !lv.level) return;
-        if (data.effects[id] && data.effects[id].kind !== 'passive') return; // buffs and auras add to attacks, they aren't attacks
+        if (rec.nd || (data.effects[id] && data.effects[id].kind !== 'passive')) return; // buffs and auras add to attacks, they aren't attacks
         var attack = !!(rec.sd || (rec.c && rec.c[9])) && !!phys;
         var spellDamage = rec.ed || rec.pd;
         if (!attack && !spellDamage) return;

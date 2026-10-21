@@ -414,7 +414,6 @@
       ['Piercing Attack', ['item_pierce'], '%']
     ] },
     { title: 'Defense', rows: [
-      ['Physical Resist', ['damageresist'], '%'],
       ['Damage Reduced by', ['normal_damage_reduction'], ''],
       ['Magic Damage Reduced by', ['magic_damage_reduction'], ''],
       ['Increased Chance of Blocking', ['toblock'], '%'],
@@ -479,6 +478,7 @@
       ]);
     });
     res.push(el('div', null, [el('dt', { text: 'Magic Resist' }), el('dd', { text: v('magicresist') + '%' })]));
+    res.push(el('div', null, [el('dt', { text: 'Physical Resist' }), el('dd', { text: v('damageresist') + '%' })]));
 
     var kids = [
       el('div', { class: 'ui-field ch-field' }, [el('label', { for: selId, text: 'Difficulty' }), sel]),
