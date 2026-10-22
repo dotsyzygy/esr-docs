@@ -1,0 +1,189 @@
+/* Skill Planner. Tokens, header, nav and the shared ui- components are in site.css; skill lines,
+   tags and notes (sk-) in skills.css. Colour pairs are chosen for WCAG 2.2 AA (>= 4.5:1 for
+   text on --esr-surface and --esr-bg, >= 3:1 for borders/focus on interactive controls).
+   A problem is never shown by colour alone: it carries a ⚠ and its text. */
+
+/* toolbar: class, character level, quest points (not sticky: the trees need the room) */
+.sp-toolbar { position: static; grid-template-columns: repeat(3, minmax(9rem, 1fr)); }
+
+.sp-bonus {
+  margin: 0 0 0.75rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-radius: var(--esr-radius);
+}
+.sp-bonus > summary { cursor: pointer; min-height: 2rem; padding: 0.2rem 0; font-weight: 600; color: var(--esr-link); }
+.sp-bonus-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+
+/* points and problems */
+.sp-status { margin: 0 0 0.25rem; }
+.sp-points { margin: 0; flex: 1 1 18rem; color: var(--esr-text); }
+.sp-points strong { color: var(--esr-accent); font-size: 1.1rem; }
+.sp-msg { margin: 0 0 0.5rem; min-height: 1.5em; color: var(--esr-muted); font-size: 0.9rem; }
+.sp-problems {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem 0.5rem 2rem;
+  color: var(--esr-q-crf);
+  border: 1px solid var(--esr-q-crf);
+  border-radius: var(--esr-radius);
+  background: var(--esr-surface);
+}
+.sp-problems li::marker { content: '⚠ '; }
+
+/* trees beside the tooltip on wide screens; the tooltip stays in view while scrolling */
+.sp-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 1.25rem; }
+@media (min-width: 60.01rem) {
+  .sp-layout { grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem); align-items: start; }
+  .sp-tip-section {
+    position: sticky;
+    top: 0.5rem;
+    max-height: calc(100vh - 1rem);
+    overflow-y: auto;
+  }
+}
+.sp-plan-section, .sp-tip-section { min-width: 0; }
+
+/* tree tabs */
+.sp-tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0 0 0.75rem; border-bottom: 1px solid var(--esr-border); }
+.sp-tab {
+  font: inherit;
+  font-size: 0.95rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.85rem;
+  color: var(--esr-text);
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-bottom: none;
+  border-radius: var(--esr-radius) var(--esr-radius) 0 0;
+  cursor: pointer;
+}
+.sp-tab:hover { border-color: var(--esr-accent); }
+.sp-tab[aria-selected="true"] {
+  background: var(--esr-surface-2);
+  border-color: var(--esr-border-strong);
+  font-weight: 600;
+  box-shadow: inset 0 -3px 0 var(--esr-accent);
+}
+.sp-tab-pts { color: var(--esr-accent); font-weight: 600; }
+
+/* a tree: the game's 6 rows by 3 columns */
+.sp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  gap: 0.6rem;
+}
+.sp-skill {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.5rem;
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-radius: var(--esr-radius);
+}
+.sp-skill.sp-has { border-color: var(--esr-border-strong); background: var(--esr-surface-2); }
+.sp-skill.sp-sel { border-color: var(--esr-accent); box-shadow: 0 0 0 1px var(--esr-accent); }
+.sp-name {
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  min-height: 2rem;
+  padding: 0;
+  color: var(--esr-link);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  overflow-wrap: anywhere;
+}
+.sp-name[aria-pressed="true"] { color: var(--esr-accent); }
+.sp-stepper { display: flex; gap: 0.25rem; align-items: stretch; }
+.sp-step {
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  width: 2.5rem;
+  min-height: 2.5rem;
+  flex: none;
+  color: var(--esr-text);
+  background: #0b0907;
+  border: 1px solid var(--esr-border-strong);
+  border-radius: var(--esr-radius);
+  cursor: pointer;
+}
+.sp-step:hover:not(:disabled) { border-color: var(--esr-accent); }
+.sp-step:disabled { color: #8f8574; border-color: var(--esr-border); cursor: default; }
+.sp-stepper input {
+  font: inherit;
+  width: 3.25rem;
+  min-width: 0;
+  flex: 1 1 3.25rem;
+  min-height: 2.5rem;
+  padding: 0.2rem 0.3rem;
+  text-align: center;
+  color: var(--esr-text);
+  background: #0b0907;
+  border: 1px solid var(--esr-border-strong);
+  border-radius: var(--esr-radius);
+}
+.sp-level { margin: 0; font-size: 0.85rem; color: var(--esr-muted); }
+.sp-has .sp-level { color: var(--esr-text); }
+.sp-warn { margin: 0; font-size: 0.8rem; color: var(--esr-q-crf); }
+
+/* narrow: a tree becomes a list, in the game's order */
+@media (max-width: 36rem) {
+  .sp-grid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; }
+  .sp-skill { grid-row: auto !important; grid-column: auto !important; flex-flow: row wrap; align-items: center; }
+  .sp-name { flex: 1 1 8rem; }
+  .sp-stepper input { flex: none; width: 3.5rem; }
+  .sp-level, .sp-warn { flex-basis: 100%; }
+  .sp-toolbar { grid-template-columns: 1fr; }
+}
+
+/* tooltip */
+.sp-tip {
+  padding: 0.75rem;
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border-strong);
+  border-radius: var(--esr-radius);
+}
+.sp-tip-name { margin: 0; font-family: var(--esr-serif); font-size: 1.3rem; color: var(--esr-accent); }
+.sp-tip-name:focus { outline: none; }
+.sp-tip-name:focus-visible { outline: 2px solid var(--esr-focus); outline-offset: 2px; }
+.sp-tip .sk-where { margin: 0.1rem 0 0; color: var(--esr-muted); }
+.sp-tip-level, .sp-tip-pre, .sp-tip-gives, .sp-tip-link { margin: 0.6rem 0 0; }
+.sp-tip .sk-desc { margin: 0.6rem 0 0; }
+.sp-tip-block { margin-top: 0.75rem; }
+.sp-tip-block .sk-sub { margin: 0 0 0.25rem; }
+.sp-link {
+  font: inherit;
+  padding: 0;
+  color: var(--esr-link);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  text-align: left;
+}
+.sp-link:hover { color: var(--esr-accent); }
+.sp-syn-pts {
+  display: inline-block;
+  font-size: 0.8rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--esr-border-strong);
+  color: var(--esr-text);
+  background: var(--esr-surface-2);
+  white-space: nowrap;
+}
+.sp-syn-pts.sp-zero { color: var(--esr-muted); border-color: var(--esr-border); }

@@ -682,7 +682,8 @@
       if (trees[tree]) trees[tree].skills.push({ name: s ? s[0] : 'Skill #' + id, lv: levels[id] || null });
     });
 
-    var groups = trees.map(function (t) {
+    // In the game's order: last page first (Amazon: Javelin, Passive, Bow).
+    var groups = trees.slice().reverse().map(function (t) {
       return el('div', { class: 'ch-tree' }, [
         el('h3', { text: t.title }),
         el('ul', null, t.skills.map(function (s) {
@@ -709,7 +710,7 @@
     };
     line('All Skills', b.all);
     line(cls.name + ' Skills', b.cls);
-    cls.trees.forEach(function (t, i) { line(t, b.tab[i]); });
+    for (var ti = cls.trees.length - 1; ti >= 0; ti--) line(cls.trees[ti], b.tab[ti]);
     Object.keys(b.single).forEach(function (id) { if (own[id]) line(data.skills[id][0], b.single[id]); });
     Object.keys(b.oskill).forEach(function (id) { if (own[id]) line(data.skills[id][0] + ' (oskill)', b.oskill[id]); });
 

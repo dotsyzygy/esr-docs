@@ -28,6 +28,10 @@
     },
     { href: 'skill.html', title: 'Skill', parent: 'skills.html' },
     {
+      href: 'skill-planner.html', title: 'Skill Planner',
+      description: 'Plan a character’s hard points in every skill tree, within the points the mod gives, and see each skill’s tooltip with the plan’s synergies, hard points and +skills.'
+    },
+    {
       href: 'vessel-of-souls.html', title: 'Vessel of Souls',
       description: 'The mythical amulet that consumes organs: every tier bonus and its soul cost, the weapon transforms and the anointments.'
     }

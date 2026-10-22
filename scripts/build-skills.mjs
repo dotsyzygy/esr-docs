@@ -120,8 +120,15 @@ for (const r of readTsv('charstats.txt')) {
     const s = str(r[`StrSkillTab${n}`]) || `Skill Tab ${n}`;
     return s.replace(/^%?\+?%?\+?d\s+to\s+/i, '').replace(/\s*\([^)]*only\)\s*$/i, '').trim();
   });
-  classes.push({ id, title: CLASS_NAMES[id], trees });
+  classes.push({ id, title: CLASS_NAMES[id], trees, perLevel: +r.SkillsPerLevel || 0 });
 }
+
+// Skill points beyond the per-level ones, for the planner: the quest Elixirs of Skill
+// (misc.txt items whose stat1 is newskills), once per difficulty when questdiffcheck is set.
+const difficulties = readTsv('difficultylevels.txt').filter(r => r.Name).length || 1;
+const questPoints = readTsv('misc.txt')
+  .filter(r => (r.stat1 || '').toLowerCase() === 'newskills' && +r.calc1 > 0)
+  .reduce((n, r) => n + +r.calc1 * (r.questdiffcheck === '1' ? difficulties : 1), 0);
 
 // ---------------------------------------------------------------------------
 // Where items grant skills: oskills, chance to cast (procs), charges and auras
@@ -612,7 +619,7 @@ const empty = entries.filter(e => !e.g && !e.l && !e.s && !e.d);
 for (const e of empty) bump(report.emptySkills, `${e.n} (${e.k})`, e.src ? `${e.src.length} source(s)` : e.c);
 
 const outClasses = classes.map(c => ({
-  id: c.id, title: c.title,
+  id: c.id, title: c.title, perLevel: c.perLevel,
   trees: c.trees.map((t, i) => ({ id: `${c.id}-tree-${i + 1}`, n: i + 1, title: t }))
     .filter(t => entries.some(e => e.c === c.id && e.tr === t.n)),
 }));
@@ -624,6 +631,7 @@ const data = {
   lang: LANG,
   notes: rules.pageNotes || [],
   levels: { max: MAX_LEVEL, skill: rules.defaultSkillLevel || 20, character: rules.defaultCharacterLevel || MAX_LEVEL, synergy: SYNERGY_POINTS },
+  points: { quest: questPoints, difficulties },
   classes: outClasses,
   skills: entries,
   db,

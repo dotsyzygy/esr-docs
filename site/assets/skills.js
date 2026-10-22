@@ -343,7 +343,8 @@
           var inTree = skills.filter(function (s) { return s.tr === tree.n; });
           return { tree: tree, inTree: inTree, best: bestRank(inTree) };
         }).filter(function (t) { return t.inTree.length; })
-          .sort(function (a, b) { return a.best - b.best || a.tree.n - b.tree.n; })
+          // Otherwise in the game's order: last page first (Amazon: Javelin, Passive, Bow).
+          .sort(function (a, b) { return a.best - b.best || b.tree.n - a.tree.n; })
           .forEach(function (t) {
           var tree = t.tree, inTree = t.inTree;
           section.appendChild(el('h3', { class: 'sk-tree-title', id: tree.id, text: tree.title }));

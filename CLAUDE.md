@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Docs site for the Eastern Sun Resurrected (ESR) Diablo II Resurrected mod. The site is generated from the mod's game data and deployed to GitHub Pages at https://dotsyzygy.github.io/esr-docs/. So far it has a home page, three docs pages (Cube Recipes, Skills with a per-skill detail page, Vessel of Souls) and a Character page that reads a player's save in the browser. Other pages from the old site will be migrated in over time.
+Docs site for the Eastern Sun Resurrected (ESR) Diablo II Resurrected mod. The site is generated from the mod's game data and deployed to GitHub Pages at https://dotsyzygy.github.io/esr-docs/. So far it has a home page, three docs pages (Cube Recipes, Skills with a per-skill detail page, Vessel of Souls), a Skill Planner and a Character page that reads a player's save in the browser. Other pages from the old site will be migrated in over time.
 
 ## Hard rules
 
@@ -31,6 +31,7 @@ site/index.html                  home page: intro + a card per page (assets/home
 site/cube-recipes.html           cube page
 site/skills.html                 skills page
 site/skill.html                  skill detail page (one skill in full, synergy points adjustable)
+site/skill-planner.html          Skill Planner: hard points per class skill, tooltips from the whole plan (assets/skill-planner.js/.css)
 site/vessel-of-souls.html        Vessel of Souls page (styled after the old vessel_of_souls.htm)
 site/classes.html                Classes page: class mechanics the skill trees don't show (Warlock Consume)
 site/character.html              Character page: pick a .d2s, see attributes, skills, items
@@ -157,6 +158,10 @@ Headless Chrome won't go below ~500px wide; to check phone width, load the page 
 Pages share `site.css` and the nav from `site-nav.js`: to add a page, add it to `PAGES` there (a `description` gives it a card on the home page; also add it to the `<noscript>` list in `index.html`) and give the page the same header markup. The home page shows which game commit the live site was built from (`build-info.json`; hidden over `file://`). `site-nav.js` also adds the scroll jumps: once the page is scrolled down, a fixed "Top" button plus every `<section id>` in `<main>` (by its `h2`), as a "Sections" menu, or as a rail in the right margin when the window is ≥ 96rem wide. They're rebuilt when `<main>` changes (filtering), and they scroll without changing the URL hash, which holds filter state. Generic components use `ui-` classes; page-specific ones use `cr-` (cube) or `sk-` (skills).
 
 `site/assets/cube-recipes.js` builds everything with DOM APIs; only the trusted `intro` HTML from the rules file uses innerHTML. Filter state lives in the URL hash (`#q=…&cat=…&quality=…&class=…`), and plain hashes jump to category or group ids. `skills.js` works the same way (`#q=…&class=…&slvl=…&clvl=…&hp=…`; plain hashes jump to `#sor`, `#sor-tree-1`, `#sor-fire-bolt`). While searching, skills whose name matches come first (whole name, then name starts with the query, then name has every term, then some), and classes and trees are ordered by their best match. It builds each skill card once and updates it in place when the levels change, and builds its level table only when opened. A card's title and its "Full details" link open `skill.html#skill=<id>[&slvl=…&clvl=…&hp=…]`.
+
+Trees are listed in the game's order, last `SkillPage` first (Amazon: Javelin, Passive, Bow), on the Skills, Character and Skill Planner pages; the data keeps page order.
+
+`skill-planner.js` (the Skill Planner) shows one class's trees as tabs (opening on the first listed), each skill on its `row`/`col` (6×3 grid; a list at phone width) with a 0–`maxlvl` hard-point stepper. The budget is (character level − 1) × charstats `SkillsPerLevel` + the quest points (misc.txt items with `stat1` `newskills`, the Elixirs of Skill, × difficulties when `questdiffcheck`; shipped as `data.points` and `classes[].perLevel` by build-skills). A first point also puts a point in each missing prerequisite; points over budget, levels below `reqlevel` + points − 1 and missing prerequisites are listed as problems, not blocked. +All/class/tree skills from items raise skills with hard points. The tooltip (current and next level, synergies with each named skill's points, "Gives bonuses to") evaluates the plan with `skill-calc`'s `opts.character` (hard points as `blvl`, levels with +skills; basic skills at 1). The hash holds the plan (`#class=sor&clvl=…&quest=…&all=…&cs=…&t1=…&tree=…&skill=…&p=fire-bolt.20_fire-ball.20`); "Full details" opens `skill.html` with the plan's levels and synergy points.
 
 `skill.js` (the detail page) shows one skill: breadcrumb, levels, values, its "Receives Bonuses From" lines with a hard-points field (0–20) beside each skill they name, fields for the other `sy` skills (curses' "Any Other Curse") and the `sl` skills (level, up to 110), the table at every level with the synergies applied, related skills (requires, leads to, gives bonuses to) and sources. The hash holds the state (`#skill=sor-fire-ball&slvl=…&clvl=…&sor-fire-bolt=20`; plain `#sor-fire-ball` works); links between skills change the hash and keep the levels. In `PAGES` it has `parent: 'skills.html'`, so it gets no nav link of its own and Skills shows as current. Keep WCAG 2.2 AA:
 
