@@ -54,6 +54,9 @@
       i++;
       var a = ternary();
       eat(':');
+      // A sign on the condition can't change which branch is taken, so it's meant for the
+      // result: Cloak of Shadows' "-(skill('Tal Rasha Passive'.lvl)>0)?0:(10+lvl/2)".
+      if (c.k === 'u-' || c.k === 'u+') return { k: c.k, a: { k: '?', c: c.a, a: a, b: ternary() } };
       return { k: '?', c: c, a: a, b: ternary() };
     }
     function binary(level) {
