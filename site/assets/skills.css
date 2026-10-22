@@ -18,6 +18,13 @@
   columns: auto;
 }
 
+/* toolbar: search, class, skill level, character level, hard points */
+@media (min-width: 901px) {
+  .sk-toolbar { grid-template-columns: minmax(12rem, 2fr) repeat(4, minmax(8rem, 1fr)); }
+}
+.sk-hp-help { margin: -0.25rem 0 0.5rem; }
+.sk-detail-toolbar + .sk-hp-help { margin: -0.75rem 0 1.5rem; }
+
 /* cards: two columns on wide screens; a card with an open table takes the full row */
 .sk-list {
   display: grid;
@@ -149,6 +156,7 @@
 .sk-crumbs [aria-current] { color: var(--esr-text); text-decoration: none; }
 
 .sk-detail-toolbar { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(9rem, 14rem)); margin: 1rem 0 1.5rem; }
+.sk-detail-toolbar.sk-has-hp { grid-template-columns: minmax(0, 1fr) repeat(3, minmax(9rem, 13rem)); }
 .sk-toolbar-name {
   align-self: center;
   margin: 0;
@@ -159,7 +167,7 @@
 }
 /* below 900px the bar isn't sticky (site.css) and sits right under the title */
 @media (max-width: 900px) {
-  .sk-detail-toolbar { grid-template-columns: repeat(2, minmax(9rem, 14rem)); }
+  .sk-detail-toolbar, .sk-detail-toolbar.sk-has-hp { grid-template-columns: repeat(2, minmax(9rem, 14rem)); }
   .sk-toolbar-name { display: none; }
 }
 .sk-detail-section > h2 { font-size: 1.3rem; }

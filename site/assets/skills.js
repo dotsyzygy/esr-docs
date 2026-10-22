@@ -63,10 +63,32 @@
     return Math.min(MAX, v);
   }
 
+  var HARD_MAX = data ? data.levels.synergy || 20 : 20;
+
+  // Hard points: '' is "same as the skill level, up to the max" (the default), else 0-20.
+  function readHard(v) {
+    if (v == null || v === '') return null;
+    v = parseInt(v, 10);
+    return v >= 0 ? Math.min(HARD_MAX, v) : null;
+  }
+
   var calc = null;
   function getCalc() {
-    if (!calc || calc.ulvl !== state.clvl) calc = new SkillCalc.Calc(data.db, { ulvl: state.clvl });
+    if (!calc || calc.ulvl !== state.clvl || calc.hardPoints !== state.hp) {
+      calc = new SkillCalc.Calc(data.db, { ulvl: state.clvl, hardPoints: state.hp });
+    }
     return calc;
+  }
+
+  // How the level table counts hard points: they can't exceed the level.
+  function hardTableText() {
+    return state.hp == null ? 'hard points equal to the level, up to ' + HARD_MAX : 'up to ' + state.hp + ' hard point' + (state.hp === 1 ? '' : 's');
+  }
+
+  // "12 hard points" for the chosen skill level.
+  function hardText(slvl) {
+    var n = state.hp == null ? Math.min(slvl, HARD_MAX) : Math.min(state.hp, slvl);
+    return n + ' hard point' + (n === 1 ? '' : 's');
   }
 
   function lineText(s, line, lvl) {
@@ -118,7 +140,7 @@
   // State (kept in the URL hash as #q=...&class=...&slvl=...&clvl=... so views can be linked)
   // ---------------------------------------------------------------------
 
-  var state = { q: '', cls: '', slvl: DEFAULT_SLVL, clvl: DEFAULT_CLVL };
+  var state = { q: '', cls: '', slvl: DEFAULT_SLVL, clvl: DEFAULT_CLVL, hp: null };
 
   function readHashState() {
     var h = location.hash.slice(1);
@@ -128,6 +150,7 @@
     state.cls = p.get('class') || '';
     state.slvl = clampLevel(p.get('slvl'), DEFAULT_SLVL);
     state.clvl = clampLevel(p.get('clvl'), DEFAULT_CLVL);
+    state.hp = readHard(p.get('hp'));
     return true;
   }
 
@@ -137,6 +160,7 @@
     if (state.cls) p.set('class', state.cls);
     if (state.slvl !== DEFAULT_SLVL) p.set('slvl', state.slvl);
     if (state.clvl !== DEFAULT_CLVL) p.set('clvl', state.clvl);
+    if (state.hp != null) p.set('hp', state.hp);
     var s = p.toString();
     history.replaceState(null, '', location.pathname + location.search + (s ? '#' + s : ''));
   }
@@ -146,6 +170,12 @@
   // ---------------------------------------------------------------------
 
   var ui = {};
+
+  function hardSelect(id) {
+    return el('select', { id: id, 'aria-describedby': 'sk-hp-help' },
+      [el('option', { value: '', text: 'Skill level (to ' + HARD_MAX + ')' })].concat(
+        Array.from({ length: HARD_MAX + 1 }, function (_, i) { return el('option', { value: String(i), text: String(i) }); })));
+  }
 
   function levelInput(id, value) {
     return el('input', { id: id, type: 'number', min: 1, max: MAX, step: 1, inputmode: 'numeric', value: value });
@@ -164,6 +194,7 @@
       data.classes.map(function (c) { return el('option', { value: c.id, text: c.title }); })));
     ui.slvl = levelInput('sk-slvl', state.slvl);
     ui.clvl = levelInput('sk-clvl', state.clvl);
+    ui.hp = hardSelect('sk-hp');
     ui.status = el('p', { id: 'sk-status-text', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' });
     ui.reset = el('button', { type: 'button', class: 'ui-btn', text: 'Clear filters' });
     ui.results = el('div', { id: 'sk-results' });
@@ -181,15 +212,18 @@
       root.appendChild(el('ul', { class: 'ui-notes', 'aria-label': 'General notes' },
         data.notes.map(function (n) { return el('li', { text: n }); })));
     }
-    root.appendChild(el('div', { class: 'ui-toolbar', role: 'search', 'aria-label': 'Filter skills' }, [
+    root.appendChild(el('div', { class: 'ui-toolbar sk-toolbar', role: 'search', 'aria-label': 'Filter skills' }, [
       el('div', { class: 'ui-field' }, [
         el('label', { for: 'sk-search' }, ['Search skills', el('kbd', { 'aria-hidden': 'true', text: '/' })]),
         ui.search
       ]),
       el('div', { class: 'ui-field' }, [el('label', { for: 'sk-class', text: 'Class' }), ui.cls]),
       el('div', { class: 'ui-field' }, [el('label', { for: 'sk-slvl', text: 'Skill level (1–' + MAX + ')' }), ui.slvl]),
-      el('div', { class: 'ui-field' }, [el('label', { for: 'sk-clvl', text: 'Character level (1–' + MAX + ')' }), ui.clvl])
+      el('div', { class: 'ui-field' }, [el('label', { for: 'sk-clvl', text: 'Character level (1–' + MAX + ')' }), ui.clvl]),
+      el('div', { class: 'ui-field' }, [el('label', { for: 'sk-hp', text: 'Hard points' }), ui.hp])
     ]));
+    root.appendChild(el('p', { id: 'sk-hp-help', class: 'sk-note sk-hp-help', text: 'Hard points are the points you put into a skill yourself, not +skills from items, and are capped at ' +
+      HARD_MAX + '. Skills tagged “Scales with hard points” give more for each one.' }));
     root.appendChild(el('div', { class: 'ui-status' }, [ui.status, ui.reset]));
     root.appendChild(el('details', { class: 'ui-toc', open: true }, [
       el('summary', { text: 'Jump to class' }),
@@ -199,6 +233,8 @@
 
     ui.search.value = state.q;
     ui.cls.value = state.cls;
+    ui.hp.value = state.hp == null ? '' : String(state.hp);
+    ui.hp.addEventListener('change', function () { state.hp = readHard(ui.hp.value); updateLevels(); });
 
     var timer = null;
     ui.search.addEventListener('input', function () {
@@ -363,6 +399,7 @@
     if (s.pas) tags.push('Passive');
     if (s.aur) tags.push('Aura');
     if (s._ulvl) tags.push('Scales with character level');
+    if (s.hp) tags.push('Scales with hard points');
     if (s.os != null) tags.push(strikeText(s));
 
     var c = { stale: true, showAll: false };
@@ -404,6 +441,7 @@
     p.set('skill', s.id);
     if (state.slvl !== DEFAULT_SLVL) p.set('slvl', state.slvl);
     if (state.clvl !== DEFAULT_CLVL) p.set('clvl', state.clvl);
+    if (state.hp != null) p.set('hp', state.hp);
     return 'skill.html#' + p.toString();
   }
 
@@ -421,7 +459,8 @@
     if (!c || !c.stale) return;
     c.stale = false;
     c.titleLink.href = c.moreLink.href = detailHref(s);
-    c.levelHead.textContent = 'At skill level ' + state.slvl + (s._ulvl ? ', character level ' + state.clvl : '');
+    c.levelHead.textContent = 'At skill level ' + state.slvl + (s.hp ? ', ' + hardText(state.slvl) : '') +
+      (s._ulvl ? ', character level ' + state.clvl : '');
     if (c.general) fillLines(c.general, s, s.g, state.slvl);
     if (s.l) fillLines(c.current, s, s.l, state.slvl);
     if (c.synergies) fillLines(c.synergies, s, s.s, state.slvl);
@@ -484,7 +523,8 @@
         el('th', { scope: 'row' }, [String(lv), cur ? el('span', { class: 'sk-cur-label', text: ' (selected)' }) : null])
       ].concat(cols.map(function (col) { return el('td', { text: col.cells[lv - 1] }); })));
     });
-    var label = s.n + ' values by skill level' + (s._ulvl ? ' at character level ' + state.clvl : '');
+    var label = s.n + ' values by skill level' + (s._ulvl ? ' at character level ' + state.clvl : '') +
+      (s.hp ? ', with ' + hardTableText() : '');
     c.tableBox.appendChild(el('div', { class: 'sk-table-wrap', role: 'region', 'aria-label': label, tabindex: 0 }, [
       el('table', { class: 'sk-table' }, [
         el('caption', { class: 'sk-visually-hidden', text: label }),
@@ -506,6 +546,9 @@
     if (s._ulvl) {
       c.tableBox.appendChild(el('p', { class: 'sk-note', text: 'At character level ' + state.clvl + '. This skill also scales with character level.' }));
     }
+    if (s.hp) {
+      c.tableBox.appendChild(el('p', { class: 'sk-note', text: 'With ' + hardTableText() + '; the rest of each level comes from +skills.' }));
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -524,6 +567,7 @@
     if (rendered && location.hash.indexOf('=') >= 0 && readHashState()) {
       ui.search.value = state.q; ui.cls.value = state.cls;
       ui.slvl.value = state.slvl; ui.clvl.value = state.clvl;
+      ui.hp.value = state.hp == null ? '' : String(state.hp);
       data.skills.forEach(function (s) { if (s._card) s._card.stale = true; });
       renderResults();
     } else {

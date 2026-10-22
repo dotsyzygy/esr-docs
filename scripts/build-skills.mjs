@@ -561,18 +561,30 @@ const SYNERGY_POINTS = rules.synergyPoints || 20;
   }
 }
 
+// Skills whose own numbers depend on their hard points (Dodge): the pages offer a hard points
+// choice for them. Compared against no hard points at all (+skills only).
+{
+  const auto = new SkillCalc.Calc(db, { ulvl: MAX_LEVEL });
+  const none = new SkillCalc.Calc(db, { ulvl: MAX_LEVEL, hardPoints: 0 });
+  for (const e of entries) {
+    const lines = [...(e.g || []), ...(e.l || []), ...(e.s || [])];
+    if ([1, 20, MAX_LEVEL].some(lvl => lines.some(line => auto.line(db.s[e.k], line, lvl) !== none.line(db.s[e.k], line, lvl)))) e.hp = 1;
+  }
+}
+
 // Validate: evaluate every line at every skill level, at the lowest and highest character level,
 // with no synergies and with every synergy at its cap.
 let evaluated = 0;
 const keyById = new Map(entries.map(e => [e.id, e.k]));
-for (const [ulvl, maxed] of [[1, false], [MAX_LEVEL, false], [MAX_LEVEL, true]]) {
+for (const [ulvl, maxed, hardPoints] of [[1, false], [MAX_LEVEL, false], [MAX_LEVEL, true], [MAX_LEVEL, false, 0]]) {
   let current = '';
   const warn = (kind, detail) => bump(report.calcWarnings, `${kind}: ${detail}`, current);
-  const plain = new SkillCalc.Calc(db, { ulvl, warn });
+  const plain = new SkillCalc.Calc(db, { ulvl, warn, hardPoints });
   for (const e of entries) {
     current = e.n;
     const rec = db.s[e.k];
     let calc = plain;
+    if (hardPoints === 0 && !e.hp) continue;
     if (maxed) {
       if (!e.sy && !e.sl) continue;
       const levels = {};

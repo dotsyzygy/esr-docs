@@ -79,7 +79,7 @@
   // State, kept in the URL hash so a view (synergies included) can be linked
   // ---------------------------------------------------------------------
 
-  var state = { id: '', slvl: DEFAULT_SLVL, clvl: DEFAULT_CLVL, syn: {} };
+  var state = { id: '', slvl: DEFAULT_SLVL, clvl: DEFAULT_CLVL, hp: null, syn: {} };
   var skill = null;   // the entry shown
   var inputs = [];    // { id, kind: 'sy' | 'sl', max }
 
@@ -96,6 +96,8 @@
     state.id = id || '';
     state.slvl = clamp(p.get('slvl'), 1, MAX, DEFAULT_SLVL);
     state.clvl = clamp(p.get('clvl'), 1, MAX, DEFAULT_CLVL);
+    // Hard points: null is "same as the skill level, up to the cap".
+    state.hp = p.get('hp') == null || p.get('hp') === '' ? null : clamp(p.get('hp'), 0, SYNERGY_CAP, null);
     state.syn = {};
     var s = skillById[state.id];
     if (s) synergyInputs(s).forEach(function (x) { state.syn[x.id] = clamp(p.get(x.id), 0, x.max, 0); });
@@ -106,6 +108,7 @@
     p.set('skill', state.id);
     if (state.slvl !== DEFAULT_SLVL) p.set('slvl', state.slvl);
     if (state.clvl !== DEFAULT_CLVL) p.set('clvl', state.clvl);
+    if (state.hp != null) p.set('hp', state.hp);
     inputs.forEach(function (x) { if (state.syn[x.id]) p.set(x.id, state.syn[x.id]); });
     history.replaceState(null, '', location.pathname + location.search + '#' + p.toString());
   }
@@ -129,7 +132,7 @@
       var target = skillById[x.id];
       levels[target.k] = x.kind === 'sy' ? { blvl: v, lvl: v } : { blvl: Math.min(v, SYNERGY_CAP), lvl: v };
     });
-    calc = new SkillCalc.Calc(data.db, { ulvl: state.clvl, levels: levels });
+    calc = new SkillCalc.Calc(data.db, { ulvl: state.clvl, levels: levels, hardPoints: state.hp });
     return calc;
   }
 
@@ -160,6 +163,7 @@
       p.set('skill', s.id);
       if (state.slvl !== DEFAULT_SLVL) p.set('slvl', state.slvl);
       if (state.clvl !== DEFAULT_CLVL) p.set('clvl', state.clvl);
+      if (state.hp != null) p.set('hp', state.hp);
       return '#' + p.toString();
     }
     var a = el('a', { href: href(), text: text || s.n });
@@ -201,6 +205,7 @@
     if (s.pas) tags.push(el('li', { text: 'Passive' }));
     if (s.aur) tags.push(el('li', { text: 'Aura' }));
     if (s._ulvl) tags.push(el('li', { text: 'Scales with character level' }));
+    if (s.hp) tags.push(el('li', { text: 'Scales with hard points' }));
     if (s.os != null) tags.push(el('li', { text: s.os ? 'Triggers “on striking”' : 'Doesn’t trigger “on striking”' }));
     root.appendChild(el('ul', { class: 'sk-tags', 'aria-label': 'About this skill' }, tags));
     if (s.d) root.appendChild(el('p', { class: 'sk-desc' }, multiline(s.d)));
@@ -214,12 +219,29 @@
 
     ui.slvl = levelInput('sk-slvl', state.slvl, 1, MAX);
     ui.clvl = levelInput('sk-clvl', state.clvl, 1, MAX);
-    root.appendChild(el('div', { class: 'ui-toolbar sk-detail-toolbar', role: 'group', 'aria-label': 'Levels' }, [
+    // Only skills whose numbers depend on their own hard points (Dodge) get the choice.
+    ui.hp = null;
+    if (s.hp) {
+      ui.hp = el('select', { id: 'sk-hp', 'aria-describedby': 'sk-hp-help' },
+        [el('option', { value: '', text: 'Skill level (to ' + SYNERGY_CAP + ')' })].concat(
+          Array.from({ length: SYNERGY_CAP + 1 }, function (_, i) { return el('option', { value: String(i), text: String(i) }); })));
+      ui.hp.value = state.hp == null ? '' : String(state.hp);
+      ui.hp.addEventListener('change', function () {
+        state.hp = ui.hp.value === '' ? null : +ui.hp.value;
+        changed();
+      });
+    }
+    root.appendChild(el('div', { class: 'ui-toolbar sk-detail-toolbar' + (s.hp ? ' sk-has-hp' : ''), role: 'group', 'aria-label': 'Levels' }, [
       // The bar stays at the top while scrolling; the name says which skill these levels are for.
       el('p', { class: 'sk-toolbar-name', 'aria-hidden': 'true', text: s.n }),
       el('div', { class: 'ui-field' }, [el('label', { for: 'sk-slvl', text: 'Skill level (1–' + MAX + ')' }), ui.slvl]),
-      el('div', { class: 'ui-field' }, [el('label', { for: 'sk-clvl', text: 'Character level (1–' + MAX + ')' }), ui.clvl])
+      el('div', { class: 'ui-field' }, [el('label', { for: 'sk-clvl', text: 'Character level (1–' + MAX + ')' }), ui.clvl]),
+      ui.hp ? el('div', { class: 'ui-field' }, [el('label', { for: 'sk-hp', text: 'Hard points' }), ui.hp]) : null
     ]));
+    if (ui.hp) {
+      root.appendChild(el('p', { id: 'sk-hp-help', class: 'sk-note sk-hp-help', text: 'This skill gives more for each hard point: a point you put in yourself, not +skills from items. Hard points are capped at ' +
+        SYNERGY_CAP + ', and can’t be more than the skill level.' }));
+    }
     watch(ui.slvl, function () { return state.slvl; }, function (v) { state.slvl = v; }, 1, MAX);
     watch(ui.clvl, function () { return state.clvl; }, function (v) { state.clvl = v; }, 1, MAX);
 
@@ -363,8 +385,14 @@
     return inputs.reduce(function (n, x) { return n + (state.syn[x.id] || 0); }, 0);
   }
 
+  // Hard points at a skill level: they can't exceed it.
+  function hardAt(lvl) {
+    return state.hp == null ? Math.min(lvl, SYNERGY_CAP) : Math.min(state.hp, lvl);
+  }
+
   function levelSummary() {
     var parts = ['skill level ' + state.slvl];
+    if (skill.hp) parts.push(hardAt(state.slvl) + ' hard point' + (hardAt(state.slvl) === 1 ? '' : 's'));
     if (skill._ulvl) parts.push('character level ' + state.clvl);
     var pts = synergyPoints();
     if (inputs.length) parts.push(pts ? pts + ' synergy point' + (pts === 1 ? '' : 's') : 'no synergies');
@@ -433,6 +461,7 @@
       ].concat(cols.map(function (col) { return el('td', { text: col.cells[lv - 1] }); })));
     });
     var others = [];
+    if (s.hp) others.push(state.hp == null ? 'hard points equal to the level (up to ' + SYNERGY_CAP + ')' : 'up to ' + state.hp + ' hard point' + (state.hp === 1 ? '' : 's'));
     if (s._ulvl) others.push('character level ' + state.clvl);
     var pts = synergyPoints();
     if (inputs.length) others.push(pts ? pts + ' synergy point' + (pts === 1 ? '' : 's') : 'no synergies');
@@ -508,6 +537,7 @@
     if (state.id !== shown) { render(); if (skill) writeHash(); return; }
     if (!skill) return;
     ui.slvl.value = state.slvl; ui.clvl.value = state.clvl;
+    if (ui.hp) ui.hp.value = state.hp == null ? '' : String(state.hp);
     inputs.forEach(function (x) { if (x.input) x.input.value = state.syn[x.id] || 0; });
     calc = null;
     refresh();

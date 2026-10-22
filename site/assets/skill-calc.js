@@ -139,6 +139,8 @@
      opts: { ulvl, warn(kind, detail), character, levels }
      opts.levels sets other skills' levels for an otherwise unequipped character (the skill
      detail page's synergy points): { skill key: { blvl, lvl } }.
+     opts.hardPoints caps the described skill's own hard points (blvl), which otherwise equal its
+     level up to its max level; the rest of the level then comes from +skills.
      opts.character evaluates for a real character instead of an unequipped one (the Character
      page): { skills: {skill key: { blvl, lvl }}, stats: {stat name: value} }, where blvl is the
      hard points and lvl the level with +skills. Skills it doesn't list are at 0. */
@@ -153,6 +155,7 @@
     this.warn = opts.warn || function () {};
     this.character = opts.character || null;
     this.levels = opts.levels || null;
+    this.hardPoints = opts.hardPoints == null ? null : opts.hardPoints;
     this.memo = {};
     this.depth = 0;
   }
@@ -235,7 +238,9 @@
       case 'lvl': return lvl;
       case 'blvl':
         if (this.character) return (this.character.skills[rec.k] || {}).blvl || 0;
-        return rec.mx ? Math.min(lvl, rec.mx) : lvl;
+        var hard = rec.mx ? Math.min(lvl, rec.mx) : lvl;
+        if (this.hardPoints != null && this.self && rec.k === this.self.k) hard = Math.min(hard, this.hardPoints);
+        return hard;
       case 'ulvl': return this.ulvl;
       case 'len': return this.cached(rec, 'len', rec.len, lvl);
       case 'rng': return this.cached(rec, 'rng', rec.rng, lvl);
