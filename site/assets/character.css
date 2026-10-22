@@ -133,6 +133,7 @@
 .ch-plus { color: var(--esr-mod); font-weight: 400; }
 .ch-sub { margin: 1.25rem 0 0.5rem; font-size: 1.1rem; color: var(--esr-accent); }
 .ch-from { color: var(--esr-muted); font-size: 0.9rem; font-weight: 400; }
+.ch-foe { color: var(--esr-muted); font-size: 0.9rem; margin: 0.5rem 0 0; }
 .ch-bonuses { margin: 0; padding-left: 1.25rem; }
 .ch-bonuses li + li { margin-top: 0.2rem; }
 .ch-oskills {

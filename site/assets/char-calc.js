@@ -12,6 +12,10 @@
            from the gear in hand on, cast buffs and class auras off)
      from: { effect key: 'main' | 'switch' } the weapon set a buff is cast with (default: the one
            that gives it the higher level)
+     stage: { effect key: n } the stage of a stacking effect (default: the last that adds anything)
+   An effect whose skill targets enemies (data.effects[id].t) puts its aura stats on them, not on
+   the character (its passive stats stay the caster's): model.enemy, and skillDamage takes their
+   resistances off the target's.
 
    How buffs settle: a buff's level is fixed when it's cast, with the gear in hand then (the main
    or switch weapons) plus whatever buffs are already up. A buff that adds skill levels (Battle
@@ -26,6 +30,7 @@
   'use strict';
 
   var MAX_ROUNDS = 12;
+  var MAX_STAGES = 1000; // applications of a stacking effect (Sigils count by 2 up to (9 + level) x 10)
   var SETS = ['main', 'switch'];
   var CHARM_PAGE = 6; // ESR's charm inventory; charms elsewhere give nothing
 
@@ -144,7 +149,11 @@
     }
 
     // The stats an effect gives at a level, evaluated with the character's skills and stats.
-    function effectStats(eff, level, levels, clvl, stats) {
+    // A stacking effect (eff.sc: the aura stat that counts its stacks by reading itself back,
+    // Permafrost, Fist of the Heavens) is evaluated at a stage: its counter after that many
+    // applications. stages lists the stages where what it gives changes, up to the last one
+    // that adds anything; the default stage is that last one.
+    function effectStats(eff, level, levels, clvl, stats, stage) {
       var rec = db && db.s[eff.k];
       if (!rec) return null;
       var skills = {};
@@ -153,17 +162,46 @@
       });
       var own = levels[eff.id] || { hard: 0 };
       skills[eff.k] = { blvl: own.hard || 0, lvl: level };
+      var counter = eff.sc != null && rec.as && rec.as[eff.sc] ? eff.as[eff.sc] : null;
+      if (counter) {
+        var copy = {};
+        Object.keys(stats).forEach(function (n) { copy[n] = stats[n]; });
+        stats = copy;
+      }
       var calc = new SkillCalc.Calc(db, { ulvl: clvl, character: { skills: skills, stats: stats }, warn: env.warn });
-      var out = [];
-      var take = function (names, calcs) {
+      var take = function (names, calcs, into) {
         (names || []).forEach(function (n, i) {
           if (!n || statId[n] == null || !calcs || !calcs[i]) return;
           var v = calc.run(rec, calcs[i], level);
-          if (v) out.push({ id: statId[n], param: 0, value: v });
+          if (v) into.push({ id: statId[n], param: 0, value: v });
         });
       };
-      take(eff.as, rec.as);
-      take(eff.ps, rec.ps);
+      var stages = null;
+      if (counter) {
+        // the counter after k applications, and what the effect gives then
+        var at = [], sig = [];
+        var others = eff.as.map(function (n, i) { return i === eff.sc ? '' : n; });
+        stats[counter] = 0;
+        for (var k = 1; k <= MAX_STAGES; k++) {
+          var c = calc.run(rec, rec.as[eff.sc], level);
+          if (k > 1 && c === stats[counter]) break;
+          stats[counter] = at[k] = c;
+          calc.memo = {}; // calcs (clcN) may read the counter
+          var given = [];
+          take(others, rec.as, given);
+          take(eff.ps, rec.ps, given);
+          sig[k] = JSON.stringify(given);
+        }
+        stages = [];
+        for (var j = 1; j < at.length; j++) if (j === 1 || sig[j] !== sig[j - 1]) stages.push(j);
+        if (stages.indexOf(stage) < 0) stage = stages[stages.length - 1];
+        stats[counter] = at[stage];
+        calc.memo = {};
+      }
+      // aura stats land on the skill's targets (enemies when eff.enemy); passive stats stay on the caster
+      var out = [], foe = [];
+      take(eff.as, rec.as, eff.enemy ? foe : out);
+      take(eff.ps, rec.ps, out);
       // a buff's poison length is its own stat; word it like an item's poison (total over time)
       out.forEach(function (st) { if (statName(st.id) === 'skill_poison_override_length' && statId.poisonlength != null) st.id = statId.poisonlength; });
       // without a length the poison values are per frame in 256ths and mean nothing as a line
@@ -171,12 +209,12 @@
         out = out.filter(function (st) { return !/^poison(min|max)dam$/.test(statName(st.id)); });
       }
       var len = rec.len ? calc.run(rec, rec.len, level) : 0;
-      return { stats: out, frames: len };
+      return { stats: out, enemy: foe, frames: len, stages: stages, stage: stages ? stage : null };
     }
 
     function compute(save, options) {
       options = options || {};
-      var on = options.on || {}, from = options.from || {};
+      var on = options.on || {}, from = options.from || {}, stage = options.stage || {};
       var h = save.header;
       var classId = h.classId;
       var inHand = h.weaponSwitch ? 'switch' : 'main';
@@ -195,14 +233,14 @@
           var e = data.effects[id];
           if (!e) return;
           var key = 'skill:' + id;
-          var c = candidates[key] || (candidates[key] = { key: key, id: +id, k: e.k, kind: e.kind, as: e.as, ps: e.ps, sets: [] });
+          var c = candidates[key] || (candidates[key] = { key: key, id: +id, k: e.k, kind: e.kind, as: e.as, ps: e.ps, sc: e.sc, enemy: !!e.t, sets: [] });
           c.sets.push(set);
         });
         gear[set].forEach(function (a) {
           if (statName(a.stat.id) !== 'item_aura' || !data.effects[a.stat.param]) return;
           var key = 'item:' + a.stat.param + ':' + a.from;
           var e = data.effects[a.stat.param];
-          var c = candidates[key] || (candidates[key] = { key: key, id: a.stat.param, k: e.k, kind: 'item aura', as: e.as, ps: e.ps, sets: [], fixed: a.stat.value, item: a.from });
+          var c = candidates[key] || (candidates[key] = { key: key, id: a.stat.param, k: e.k, kind: 'item aura', as: e.as, ps: e.ps, sc: e.sc, enemy: !!e.t, sets: [], fixed: a.stat.value, item: a.from });
           if (c.sets.indexOf(set) < 0) c.sets.push(set);
         });
       });
@@ -235,9 +273,11 @@
           c.set = pick;
           c.level = c.fixed != null ? c.fixed : ((lv[pick] || {})[c.id] || {}).level || 0;
           if (!c.levels.length || c.levels[c.levels.length - 1] !== c.level) c.levels.push(c.level);
-          var r = c.level > 0 ? effectStats(c, c.level, lv[pick] || {}, h.level, stats) : null;
+          var r = c.level > 0 ? effectStats(c, c.level, lv[pick] || {}, h.level, stats, stage[c.key]) : null;
           c.missing = !r;
           c.stats = r ? r.stats : [];
+          c.enemyStats = r ? r.enemy : [];
+          c.stages = r && r.stages; c.stage = r && r.stage;
           c.seconds = r && r.frames ? Math.floor(r.frames / 25) : 0;
           if (c.enabled) c.stats.forEach(function (st) { next.push({ stat: st, from: c.name || c.k }); });
         });
@@ -252,10 +292,15 @@
         c.name = s ? s[0] : c.k;
         c.casts = c.kind === 'buff' && c.enabled ? c.levels.length : 0;
       });
-      // name the sources of the effects' stats now that names are known
+      // name the sources of the effects' stats now that names are known; stats put on enemies
+      // (curses, Conviction, Super Teleport) don't change the character, they go to the target
       extra = [];
+      var onEnemy = [];
       list.forEach(function (c) {
-        if (c.enabled) c.stats.forEach(function (st) { extra.push({ stat: st, from: c.name + (c.kind === 'item aura' ? ' (aura on ' + c.item + ')' : '') }); });
+        if (!c.enabled) return;
+        var from = c.name + (c.kind === 'item aura' ? ' (aura on ' + c.item + ')' : '');
+        c.stats.forEach(function (st) { extra.push({ stat: st, from: from }); });
+        c.enemyStats.forEach(function (st) { onEnemy.push({ stat: st, from: from }); });
       });
 
       var active = gear[inHand].concat(extra);
@@ -265,6 +310,7 @@
         items: { main: itemsFor(save, 'main'), switch: itemsFor(save, 'switch') },
         effects: list.sort(function (a, b) { return order(a) - order(b) || a.name.localeCompare(b.name); }),
         stats: active, // every stat that applies with the weapons in hand and the effects that are on
+        enemy: onEnemy, // the stats the effects that are on put on enemies
         skills: skills.levels, bonuses: skills.bonuses,
         rounds: rounds, levelsBySet: state
       };
@@ -331,11 +377,11 @@
     // ---------------------------------------------------------------------
 
     var ELEMENTS = [
-      { key: 'fire', label: 'Fire', et: 'fire', min: 'firemindam', max: 'firemaxdam', mastery: 'passive_fire_mastery', pierce: 'passive_fire_pierce' },
-      { key: 'cold', label: 'Cold', et: 'cold', min: 'coldmindam', max: 'coldmaxdam', mastery: 'passive_cold_mastery', pierce: 'passive_cold_pierce' },
-      { key: 'light', label: 'Lightning', et: 'ltng', min: 'lightmindam', max: 'lightmaxdam', mastery: 'passive_ltng_mastery', pierce: 'passive_ltng_pierce' },
-      { key: 'magic', label: 'Magic', et: 'mag', min: 'magicmindam', max: 'magicmaxdam', mastery: 'passive_mag_mastery', pierce: 'passive_mag_pierce' },
-      { key: 'poison', label: 'Poison', et: 'pois', min: 'poisonmindam', max: 'poisonmaxdam', mastery: 'passive_pois_mastery', pierce: 'passive_pois_pierce' }
+      { key: 'fire', label: 'Fire', et: 'fire', min: 'firemindam', max: 'firemaxdam', mastery: 'passive_fire_mastery', pierce: 'passive_fire_pierce', res: 'fireresist' },
+      { key: 'cold', label: 'Cold', et: 'cold', min: 'coldmindam', max: 'coldmaxdam', mastery: 'passive_cold_mastery', pierce: 'passive_cold_pierce', res: 'coldresist' },
+      { key: 'light', label: 'Lightning', et: 'ltng', min: 'lightmindam', max: 'lightmaxdam', mastery: 'passive_ltng_mastery', pierce: 'passive_ltng_pierce', res: 'lightresist' },
+      { key: 'magic', label: 'Magic', et: 'mag', min: 'magicmindam', max: 'magicmaxdam', mastery: 'passive_mag_mastery', pierce: 'passive_mag_pierce', res: 'magicresist' },
+      { key: 'poison', label: 'Poison', et: 'pois', min: 'poisonmindam', max: 'poisonmaxdam', mastery: 'passive_pois_mastery', pierce: 'passive_pois_pierce', res: 'poisonresist' }
     ];
     var ATTACK_ANIMS = { A1: 1, A2: 1, S1: 1, S2: 1, S3: 1, S4: 1, SQ: 1, TH: 1, KK: 1 };
 
@@ -404,7 +450,14 @@
         if (e.key === 'poison') { var len = v('poisonlength') || 0; lo = Math.round(lo * len / 256); hi = Math.round(hi * len / 256); }
         if (lo || hi) itemElem[e.key] = [lo, Math.max(lo, hi)];
       });
-      var effRes = function (e) { return Math.min(95, (target.res || 0) - v(e.pierce)); };
+      // the target's resistances, lowered by the effects on enemies that are on (curses,
+      // Conviction, Super Teleport); the character's pierce comes off after that
+      var enemyList = (model.enemy || []).map(function (a) { return a.stat; });
+      var onTarget = function (n) { return statId[n] != null ? wording.stat(enemyList, n, model.ctx) : 0; };
+      var res = {};
+      ELEMENTS.forEach(function (e) { res[e.key] = (target.res || 0) + onTarget(e.res); });
+      var physRes = Math.min(95, (target.phys || 0) + onTarget('damageresist'));
+      var effRes = function (e) { return Math.min(95, res[e.key] - v(e.pierce)); };
 
       var stats = formulaStats(model.base, model.stats);
       var out = [];
@@ -449,7 +502,7 @@
               parts.push({ label: cvEl.label + ' (' + conversion + '% converted)', min: cMin, max: cMax, avg: (cMin + cMax) / 2 * crit * (100 - effRes(cvEl)) / 100 });
             }
           }
-          if (pMin || pMax) parts.unshift({ label: 'Physical', min: pMin, max: pMax, avg: (pMin + pMax) / 2 * crit * (100 - Math.min(95, target.phys || 0)) / 100 });
+          if (pMin || pMax) parts.unshift({ label: 'Physical', min: pMin, max: pMax, avg: (pMin + pMax) / 2 * crit * (100 - physRes) / 100 });
           ELEMENTS.forEach(function (e) {
             if (!itemElem[e.key]) return;
             var lo = Math.floor(itemElem[e.key][0] * pct), hi = Math.floor(itemElem[e.key][1] * pct);
@@ -459,7 +512,7 @@
         // the skill's own damage: physical (pnma/pxma) and its element (enma/exma; poison over its length)
         if (rec.pd) {
           var sMin = run('pnma'), sMax = run('pxma');
-          if (sMin || sMax) parts.push({ label: 'Physical (skill)', min: sMin, max: sMax, avg: (sMin + sMax) / 2 * (100 - Math.min(95, target.phys || 0)) / 100 });
+          if (sMin || sMax) parts.push({ label: 'Physical (skill)', min: sMin, max: sMax, avg: (sMin + sMax) / 2 * (100 - physRes) / 100 });
         }
         if (rec.ed && rec.et) {
           var el = ELEMENTS.filter(function (e) { return e.et === rec.et; })[0];
@@ -496,7 +549,7 @@
         // left, and the effective DPS is the life over the time to kill.
         var kill = null;
         var ranged = bp && (bp.wclass === 'BOW' || bp.wclass === 'XBW' || mode === 'TH');
-        var cbShare = attack ? ((data.crush.targets[target.type || 'monster'] || 0) / 100) * (ranged ? data.crush.ranged / 100 : 1) * (100 - Math.min(95, target.phys || 0)) / 100 : 0;
+        var cbShare = attack ? ((data.crush.targets[target.type || 'monster'] || 0) / 100) * (ranged ? data.crush.ranged / 100 : 1) * (100 - physRes) / 100 : 0;
         var cbPerHit = cbChance * cbShare;
         if (frames && target.life > 0) {
           var life = target.life, hits = 0;
@@ -516,7 +569,7 @@
         });
       });
       return {
-        weapon: weapon ? wording.name(weapon).title : null, phys: phys, critChance: critChance, critMult: critMult, crushChance: cbChance, dsTotal: dsTotal, cbTotal: cbTotal,
+        weapon: weapon ? wording.name(weapon).title : null, phys: phys, res: res, physRes: physRes, critChance: critChance, critMult: critMult, crushChance: cbChance, dsTotal: dsTotal, cbTotal: cbTotal,
         skills: out.sort(function (a, b) { return (b.dps || 0) - (a.dps || 0) || b.avg - a.avg; })
       };
     }

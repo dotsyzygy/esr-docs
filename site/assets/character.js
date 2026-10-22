@@ -171,11 +171,12 @@
   var calc = window.ESRCharCalc.create({ data: data, SkillCalc: window.ESRSkillCalc, wording: wording });
 
   // The loaded save and the player's choices for its effects (on/off, the weapon set a buff is
-  // cast with). Changing a choice recomputes and redraws; choices reset when another save loads.
-  var current = { save: null, on: {}, from: {}, difficulty: null };
+  // cast with, the stage of a stacking one). Changing a choice recomputes and redraws; choices
+  // reset when another save loads.
+  var current = { save: null, on: {}, from: {}, stage: {}, difficulty: null };
 
   function renderSave(save) {
-    current = { save: save, on: {}, from: {}, difficulty: current.difficulty, target: current.target };
+    current = { save: save, on: {}, from: {}, stage: {}, difficulty: current.difficulty, target: current.target };
     redraw();
   }
 
@@ -183,7 +184,7 @@
     var save = current.save;
     var h = save.header;
     var cls = data.classes[h.classId];
-    var model = calc.compute(save, { on: current.on, from: current.from });
+    var model = calc.compute(save, { on: current.on, from: current.from, stage: current.stage });
     var base = model.base;
 
     ui.results.textContent = '';
@@ -262,6 +263,7 @@
     });
     return section('effects', 'Buffs, auras and passives', kids,
       'Switch them on to add them to the attributes and skill levels below. Passives and auras from the gear in hand are on, as in game; buffs and class auras are off until you switch them on. ' +
+      'Curses, debuffs and auras that land on enemies list those stats under “On enemies”: they don’t change the character, and the resistances they take off go to the target in Damage. Effects that stack show a stage to pick (default: the last that adds anything). ' +
       'A buff’s level is set when it’s cast, so it can be cast with the switch weapons and keep its level after swapping back. Buffs that add skill levels (Battle Command) raise their own next cast and every buff cast after them: the page recasts until the levels stop rising, and says how many casts that takes.');
   }
 
@@ -299,13 +301,31 @@
     } else if (e.cast) {
       kids.push(el('p', { class: 'ch-from', text: 'Cast with ' + SET_NAMES[e.set] }));
     }
+    // how many stacks a stacking effect has built up (Permafrost, Fist of the Heavens)
+    if (e.stages && e.stages.length > 1) {
+      var stId = id + '-stage';
+      var last = e.stages[e.stages.length - 1];
+      var st = el('select', { id: stId }, e.stages.map(function (n) {
+        return el('option', { value: String(n), text: 'Stage ' + n + ' of ' + last });
+      }));
+      st.value = String(e.stage);
+      st.addEventListener('change', function () {
+        current.stage[e.key] = +st.value;
+        redraw(stId);
+      });
+      kids.push(el('div', { class: 'ch-effect-set' }, [el('label', { class: 'sr-only', for: stId, text: e.name + ': stage' }), st]));
+    }
     if (e.casts > 1) {
       kids.push(el('p', { class: 'ch-recast', text: 'Cast ' + e.casts + ' times to reach level ' + e.level + ' (' + e.levels.join(' → ') + ')' }));
     }
     var lines = wording.lines(e.stats, model.ctx);
-    kids.push(lines.length
-      ? el('ul', { class: 'ch-mods' }, lines.map(function (l) { return el('li', { text: l.text }); }))
-      : el('p', { class: 'ch-from', text: e.missing ? 'Its formulas aren’t in the data.' : 'Nothing that shows on this page.' }));
+    var foe = wording.lines(e.enemyStats || [], model.ctx);
+    if (lines.length) kids.push(el('ul', { class: 'ch-mods' }, lines.map(function (l) { return el('li', { text: l.text }); })));
+    if (foe.length) {
+      kids.push(el('p', { class: 'ch-foe', text: 'On enemies:' }));
+      kids.push(el('ul', { class: 'ch-mods' }, foe.map(function (l) { return el('li', { text: l.text }); })));
+    }
+    if (!lines.length && !foe.length) kids.push(el('p', { class: 'ch-from', text: e.missing ? 'Its formulas aren’t in the data.' : 'Nothing that shows on this page.' }));
     return el('li', { class: 'ch-effect' + (e.enabled ? ' ch-on' : '') }, kids);
   }
 
@@ -571,7 +591,7 @@
     var dmg = calc.skillDamage(save, model, finalAttributes(model, cls), target);
     var typeId = 'ch-target-type';
     var typeSel = el('select', { id: typeId }, TARGET_TYPES.map(function (t) {
-      return el('option', { value: t[0], text: t[1] + ' (crushing blow: ' + data.crush.targets[t[0]] + '% of life)' });
+      return el('option', { value: t[0], text: t[1] });
     }));
     typeSel.value = target.type;
     typeSel.addEventListener('change', function () { target.type = typeSel.value; redraw(typeId); });
@@ -586,7 +606,14 @@
       kids.push(el('p', { class: 'ch-help', text: 'Weapon damage: ' + fmt(dmg.phys.min) + '–' + fmt(dmg.phys.max) + ' (' + dmg.weapon + ' ' + p.weapon[0] + '–' + p.weapon[1] +
         ', then +' + p.otherED + '% enhanced damage from other gear, +' + p.skillED + '% from skills, +' + p.attr + '% from attributes). ' +
         'Deadly strike: ' + dmg.dsTotal + '% in Advanced stats, so ' + pct(dmg.critChance) + ' of hits deal ×' + dmg.critMult.toFixed(2) + ' weapon damage. ' +
-        'Crushing blow: ' + dmg.cbTotal + '% in Advanced stats, so ' + pct(dmg.crushChance) + ' of hits.' }));
+        'Crushing blow: ' + dmg.cbTotal + '% in Advanced stats, so ' + pct(dmg.crushChance) + ' of hits, and against this target (' + TARGET_TYPES.filter(function (t) { return t[0] === target.type; })[0][1] + ') each removes ' + data.crush.targets[target.type] + '% of the target’s current life (ranged: ×' + (data.crush.ranged / 100) + ', less physical resistance).' }));
+    }
+    if (model.enemy.length) {
+      var lowered = [['fire', 'Fire'], ['cold', 'Cold'], ['light', 'Lightning'], ['poison', 'Poison'], ['magic', 'Magic']]
+        .filter(function (r) { return dmg.res[r[0]] !== (target.res || 0); })
+        .map(function (r) { return r[1] + ' ' + dmg.res[r[0]] + '%'; });
+      if (dmg.physRes !== Math.min(95, target.phys || 0)) lowered.push('Physical ' + dmg.physRes + '%');
+      if (lowered.length) kids.push(el('p', { class: 'ch-help', text: 'Target resistances with the effects on enemies that are on, before pierce: ' + lowered.join(', ') + '.' }));
     }
     if (!dmg.skills.length) {
       kids.push(el('p', { class: 'ui-empty', text: 'None of the skills this character can use deals damage that the page can work out yet.' }));
@@ -617,7 +644,7 @@
       })));
     }
     return section('damage', 'Damage', kids,
-      'An estimate for one hit of one missile on one target that it always hits, with the gear in hand and the buffs and auras that are on. ' +
+      'An estimate for one hit of one missile on one target that it always hits, with the gear in hand and the buffs and auras that are on, and the target’s resistances lowered by the effects on enemies that are on. ' +
       'Each hit is averaged: deadly strike counts at its chance (on all weapon damage, converted or not), damage converted by the skill’s missile goes to its element (and its resistance and mastery), and the target’s resistances apply, less the character’s pierce. ' +
       'Crushing blow takes a share of the target’s current life, so it can’t be a fixed number per second: the second figure averages it over a whole kill of the target above, using ESR’s crushing blow shares per target type. ' +
       'Not counted: several missiles or hits per attack (Multiple Shot, Strafe, Magic Arrow’s shards), splash and area damage, damage over time, open wounds, chance to hit, and summons.');

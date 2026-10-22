@@ -272,7 +272,17 @@ for (const r of readTsv('skills.txt')) {
   if (r.passive === '1' && ps.length) kind = 'passive';
   else if (r.aura === '1' && as.length) kind = 'aura';
   else if (as.length && r.auralencalc && r.aurastate) kind = 'buff';
-  if (kind) effects[r['*Id']] = { k: r.skill.toLowerCase(), kind, as, ps };
+  if (!kind) continue;
+  const e = effects[r['*Id']] = { k: r.skill.toLowerCase(), kind, as, ps };
+  // aurafilter says whom the stats land on: a filter that ignores allies (0x8000) or is just
+  // players/monsters (2, 3) puts them on enemies (Conviction, Judgement, Super Teleport), unless
+  // it has 0x40000000 (the caster's own stacks) or the state is the caster's during the skill
+  // (srvstfunc 39: Berserk Fury). Without a filter, or allies only (Might), they're the caster's.
+  const f = num(r.aurafilter);
+  if (f && !(f & 0x40000000) && ((f & 0x8000) || (f & ~3) === 0) && r.srvstfunc !== '39') e.t = 1;
+  // a stacking counter: an aura stat whose formula reads itself back (Permafrost, Fist of the Heavens)
+  const sc = as.findIndex((n, i) => new RegExp(`stat\\('${n}'\\.accr\\)`).test(r[`aurastatcalc${i + 1}`] || ''));
+  if (sc >= 0) e.sc = sc;
 }
 
 // Formula records for the skills a character can have: every class skill, every skill an item
