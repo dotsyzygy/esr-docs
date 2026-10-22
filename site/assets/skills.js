@@ -84,6 +84,11 @@
     return [line.a, line.b].filter(Boolean).join(' ').replace(/%\+?\d*(?:\.\d+)?[dsif]/g, ' ').replace(/%%/g, '%');
   }
 
+  // Whether the skill triggers items' "chance to cast on striking" (generated as e.os).
+  function strikeText(s) {
+    return s.os ? 'Triggers “on striking”' : 'Doesn’t trigger “on striking”';
+  }
+
   function buildIndex() {
     data.classes.forEach(function (c) { classById[c.id] = c; });
     // Lines whose values differ between character level 1 and the max scale with character level.
@@ -102,7 +107,7 @@
       s._name = norm(s.n);
       s._text = norm([
         s.n, cls ? cls.title : '', s._tree, s.d || '', (s.pre || []).join(' '),
-        s.pas ? 'passive' : '', s.aur ? 'aura' : '', s.c === 'other' ? 'oskill item skill' : '',
+        s.pas ? 'passive' : '', s.aur ? 'aura' : '', s.os == null ? '' : strikeText(s), s.c === 'other' ? 'oskill item skill' : '',
         lines.map(templateText).join(' '),
         (s.src || []).map(function (x) { return x.k + ' ' + (x.n || '') + ' ' + (x.v || ''); }).join(' ')
       ].join(' '));
@@ -358,6 +363,7 @@
     if (s.pas) tags.push('Passive');
     if (s.aur) tags.push('Aura');
     if (s._ulvl) tags.push('Scales with character level');
+    if (s.os != null) tags.push(strikeText(s));
 
     var c = { stale: true, showAll: false };
     c.general = s.g ? el('ul', { class: 'sk-lines sk-general' }) : null;
@@ -379,7 +385,7 @@
         el(hTitle, { id: 't-' + s.id }, [c.titleLink]),
         !other && cls ? el('p', { class: 'sk-where', text: cls.title + ' · ' + s._tree }) : null
       ]),
-      el('ul', { class: 'sk-tags', 'aria-label': 'Requirements' }, tags.map(function (t) { return el('li', { text: t }); })),
+      el('ul', { class: 'sk-tags', 'aria-label': 'About this skill' }, tags.map(function (t) { return el('li', { text: t }); })),
       s.d ? el('p', { class: 'sk-desc' }, multiline(s.d)) : null,
       c.general,
       s.l ? el('div', { class: 'sk-block' }, [c.levelHead, c.current]) : null,

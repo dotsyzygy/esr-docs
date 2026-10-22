@@ -201,8 +201,16 @@
     if (s.pas) tags.push(el('li', { text: 'Passive' }));
     if (s.aur) tags.push(el('li', { text: 'Aura' }));
     if (s._ulvl) tags.push(el('li', { text: 'Scales with character level' }));
-    root.appendChild(el('ul', { class: 'sk-tags', 'aria-label': 'Requirements' }, tags));
+    if (s.os != null) tags.push(el('li', { text: s.os ? 'Triggers “on striking”' : 'Doesn’t trigger “on striking”' }));
+    root.appendChild(el('ul', { class: 'sk-tags', 'aria-label': 'About this skill' }, tags));
     if (s.d) root.appendChild(el('p', { class: 'sk-desc' }, multiline(s.d)));
+    // Why, for items' "chance to cast … on striking".
+    if (s.os != null) {
+      root.appendChild(el('p', { class: 'sk-note sk-strike-note' }, [
+        s.os ? 'Items’ “chance to cast … on striking” can fire when this skill hits. ' : 'Items’ “chance to cast … on striking” don’t fire from this skill. ',
+        s.osr || ''
+      ]));
+    }
 
     ui.slvl = levelInput('sk-slvl', state.slvl, 1, MAX);
     ui.clvl = levelInput('sk-clvl', state.clvl, 1, MAX);

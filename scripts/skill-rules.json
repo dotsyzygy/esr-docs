@@ -4,6 +4,23 @@
     "Values assume no items and no points in other skills. Bonuses from synergies are listed under each skill and are not included in the numbers here; open a skill to set synergy points and see every level.",
     "Pick a skill level and character level to see the values the game would show. Some skills scale with character level as well as skill level."
   ],
+  "onStriking": {
+    "$comment": "Whether a skill triggers 'chance to cast on striking' (item_skillonhit, on the domeleedamage/domissiledamage events). Spells don't count as strikes. A skill counts when its srvdofunc is a melee attack routine below (with SrcDam, unless the routine is in 'withoutSrcDam'), or when a missile it fires (or one that missile spawns) carries weapon damage (SrcDam on the skill, SrcDamage on the missile). Routine names and meanings are from https://locbones.github.io/D2R_DataGuide/#Skills (srvdofunc). 'notes' adds player-facing text for a routine (76: d2rloader whirlwind plugin, ctc_while_uninterruptible; 150: smite-multihit plugin); 'skills' overrides by skills.txt name: { value: true|false, reason }.",
+    "meleeRoutines": {
+      "1": "DoAttack", "2": "DoApplyDamage", "7": "AmaDoJab", "9": "BarDoFrenzy", "13": "AmaDoFend",
+      "14": "AmaDoLightningStrike", "34": "AssDoProgressiveAttack", "35": "AssDoDualProgressiveAttack",
+      "42": "AssDoDragonTalon", "46": "AssDoDragonClaw", "50": "AssDoDragonTail", "52": "AssDoDragonFlight",
+      "64": "PalDoSacrifice", "67": "PalDoCharge", "70": "BarDoDoubleSwing", "76": "BarDoWhirlwind",
+      "78": "BarDoLeapAttack", "120": "DruDoFeralRage", "121": "DruDoRabies", "122": "DruDoHunger", "150": "PalDoSmite"
+    },
+    "withoutSrcDam": ["34", "35", "150"],
+    "noHitRoutines": { "116": "DruDoWerewolf (toggles the shapeshift state; the SrcDam on these rows isn't a hit)" },
+    "notes": {
+      "76": "Unlike vanilla, ESR lets item procs fire during Whirlwind.",
+      "150": "In ESR each Smite lands several hits, and each hit can proc."
+    },
+    "skills": {}
+  },
   "maxLevel": 110,
   "defaultSkillLevel": 20,
   "defaultCharacterLevel": 110,

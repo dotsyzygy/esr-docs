@@ -54,6 +54,7 @@ const report = {
   noLines: new Map(),
   emptySkills: new Map(),
   unmodelledSynergies: new Map(),
+  onStriking: new Map(),
   missileLines: new Map(),
   classCounts: new Map(),
 };
@@ -363,6 +364,49 @@ function percentLifeLines(row) {
 
 // Hand-written lines from skill-rules.json extraLines, for skills whose effect the data
 // doesn't describe anywhere: { skill, lines: [{ text, x, y }] } (text is a printf template).
+// "Chance to cast on striking": does the skill strike (deal weapon damage in melee or with a
+// missile that carries it)? Spells don't. See onStriking in skill-rules.json.
+const striking = rules.onStriking || {};
+const strikeOverrides = new Map(Object.entries(striking.skills || {}).filter(([k]) => !k.startsWith('$')).map(([k, v]) => [k.toLowerCase(), v]));
+const MISSILE_CHILDREN = ['ExplosionMissile', 'SubMissile1', 'SubMissile2', 'SubMissile3', 'HitSubMissile1', 'HitSubMissile2', 'HitSubMissile3', 'HitSubMissile4'];
+function missileTree(key, test, depth = 0, seen = new Set()) {
+  const m = missileByKey.get((key || '').toLowerCase());
+  if (!m || seen.has(m.Missile) || depth > 3) return false;
+  seen.add(m.Missile);
+  return test(m) || MISSILE_CHILDREN.some(c => m[c] && missileTree(m[c], test, depth + 1, seen));
+}
+// { value, reason } or null when the skill doesn't hit anything (buffs, summons) or it's unclear.
+function strikes(row) {
+  const over = strikeOverrides.get(row.skill.toLowerCase());
+  if (over) return { value: !!over.value, reason: over.reason || '' };
+  if (row.passive === '1' || row.aura === '1') return null;
+  const fn = row.srvdofunc;
+  if ((striking.noHitRoutines || {})[fn]) return null;
+  if (row.summon) return null; // the summon hits, not the caster
+  const srcDam = +row.SrcDam > 0;
+  const note = (striking.notes || {})[fn];
+  const withNote = r => (note ? `${r} ${note}` : r);
+  if ((striking.meleeRoutines || {})[fn] && (srcDam || (striking.withoutSrcDam || []).includes(fn))) {
+    return { value: true, reason: withNote('It hits with your weapon.') };
+  }
+  const missiles = ['srvmissile', 'srvmissilea', 'srvmissileb', 'srvmissilec'].map(c => row[c]).filter(Boolean);
+  if (missiles.length && (srcDam || missiles.some(m => missileTree(m, x => +x.SrcDamage > 0)))) {
+    return { value: true, reason: withNote('Its missiles carry your weapon damage.') };
+  }
+  if (srcDam) { bump(report.onStriking, `unclear: ${row.skill}`, `SrcDam ${row.SrcDam}, srvdofunc ${fn || '-'}`); return null; }
+  const damage = r => +r.MinDam > 0 || +r.MaxDam > 0 || +r.EMin > 0 || +r.EMax > 0;
+  const missileDamage = x => +x.MinDamage > 0 || +x.MaxDamage > 0 || +x.EMin > 0 || +x.EMax > 0;
+  if (!damage(row) && !missiles.some(m => missileTree(m, missileDamage))) return null;
+  // A buff that fires nothing (Venom, Energy Shield): its damage columns aren't a hit.
+  if (!missiles.length && row.aurastate) return null;
+  // An attack (weapon range, attack speed) with no weapon damage: not clearly a spell or a strike.
+  if (row.UseAttackRate === '1' && ['h2h', 'rng', 'both'].includes(row.range)) {
+    bump(report.onStriking, `unclear: ${row.skill}`, `attack with no weapon damage, srvdofunc ${fn || '-'}`);
+    return null;
+  }
+  return { value: false, reason: 'It deals no weapon damage, and spells don’t count as strikes.' };
+}
+
 const extraLines = new Map((rules.extraLines || []).map(x => [x.skill.toLowerCase(), x.lines]));
 // Hand-written descriptions (skill-rules.json descriptions), for skills whose numbers depend on
 // other skills or on mechanics the data can't pin down: { skill (skills.txt name): text }.
@@ -390,6 +434,12 @@ function entryFor(row, cls) {
   if (pre.length) e.pre = pre;
   if (row.passive === '1') e.pas = 1;
   if (row.aura === '1') e.aur = 1;
+  const strike = strikes(row);
+  if (strike) {
+    e.os = strike.value ? 1 : 0;
+    if (strike.reason) e.osr = strike.reason;
+    if (cls !== 'other') bump(report.onStriking, strike.value ? 'triggers' : 'does not trigger', name);
+  }
   // Descriptions are hard-wrapped for the tooltip; rejoin a line that continues a sentence
   // (starts lowercase), keep breaks before lines that start a new one.
   const desc = text(d['str long'] || d['str short'], name).replace(/\n(?=[a-z])/g, ' ');
@@ -597,6 +647,7 @@ ${reportTable('Weapon-damage lines from the missile a skill fires (no skilldesc 
 ${reportTable('Skills with no lines at all', report.noLines)}
 ${reportTable('Skills that show nothing (no lines, no description) - to be addressed', report.emptySkills)}
 ${reportTable('Skills whose synergy lines have no adjustable synergies on the detail page', report.unmodelledSynergies)}
+${reportTable('"On striking" (class skills; unclear ones show nothing, set them in onStriking.skills)', report.onStriking)}
 `;
 
 if (typeof args.report === 'string') fs.writeFileSync(path.resolve(ROOT, args.report), md);
