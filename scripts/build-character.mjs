@@ -271,7 +271,8 @@ for (const r of readTsv('skills.txt')) {
   let kind = null;
   if (r.passive === '1' && ps.length) kind = 'passive';
   else if (r.aura === '1' && as.length) kind = 'aura';
-  else if (as.length && r.auralencalc && r.aurastate) kind = 'buff';
+  // a cast buff puts a timed state on the caster (aurastate), a curse on its targets (auratargetstate)
+  else if (as.length && r.auralencalc && (r.aurastate || r.auratargetstate)) kind = 'buff';
   if (!kind) continue;
   const e = effects[r['*Id']] = { k: r.skill.toLowerCase(), kind, as, ps };
   // aurafilter says whom the stats land on: a filter that ignores allies (0x8000) or is just
