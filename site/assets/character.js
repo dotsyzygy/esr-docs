@@ -264,7 +264,7 @@
     return section('effects', 'Buffs, auras and passives', kids,
       'Switch them on to add them to the attributes and skill levels below. Passives and auras from the gear in hand are on, as in game; buffs and class auras are off until you switch them on. ' +
       'Curses, debuffs and auras that land on enemies list those stats under “On enemies”: they don’t change the character, and the resistances they take off go to the target in Damage. Effects that stack show a stage to pick (default: the last that adds anything). ' +
-      'A buff’s level is set when it’s cast, so it can be cast with the switch weapons and keep its level after swapping back. Buffs that add skill levels (Battle Command) raise their own next cast and every buff cast after them: the page recasts until the levels stop rising, and says how many casts that takes.');
+      'A buff’s level is set when it’s cast, so it can be cast with the switch weapons and keep its level after swapping back. Buffs that add skill levels (Battle Command) raise their own next cast and every buff cast after them: the page recasts them until their levels stop rising, says how many casts that takes, and casts every other buff once after them.');
   }
 
   function renderEffect(e, model) {

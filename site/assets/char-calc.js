@@ -21,7 +21,8 @@
    or switch weapons) plus whatever buffs are already up. A buff that adds skill levels (Battle
    Command) raises its own level for the next cast, and the level of everything cast after it.
    So the model recasts every buff that's on until no level changes, as a player would: each
-   round is one more cast. Levels only go up and the +skills from a buff grow slowly with its
+   round is one more cast. Only buffs that raise their own level report their casts (c.casts);
+   the rest are cast once, after those. Levels only go up and the +skills from a buff grow slowly with its
    level, so it settles in a few rounds (capped at MAX_ROUNDS). */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -287,10 +288,20 @@
         if (sig === signature) break;
         signature = sig;
       }
+      // whether a buff's own stats add levels to the buff itself
+      function raisesItself(c) {
+        var g = gear[c.set] || [];
+        var mine = c.stats.map(function (st) { return { stat: st }; });
+        var lvl = function (l) { return (skillLevels(save, classId, l).levels[c.id] || {}).level || 0; };
+        return lvl(g.concat(mine)) > lvl(g);
+      }
       list.forEach(function (c) {
         var s = data.skills[c.id];
         c.name = s ? s[0] : c.k;
-        c.casts = c.kind === 'buff' && c.enabled ? c.levels.length : 0;
+        // only a buff that raises its own level (Battle Command) gains from being recast; the
+        // others reach their level in one cast, after the buffs that add skill levels
+        var own = c.kind === 'buff' && c.enabled && c.levels.length > 1 && raisesItself(c);
+        c.casts = own ? c.levels.length : 0;
       });
       // name the sources of the effects' stats now that names are known; stats put on enemies
       // (curses, Conviction, Super Teleport) don't change the character, they go to the target
