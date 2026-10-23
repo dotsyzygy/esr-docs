@@ -70,6 +70,11 @@
 }
 
 .sk-desc { margin: 0.6rem 0 0; }
+.sk-triggers { margin: 0.6rem 0 0; }
+.sk-triggers > div { display: flex; flex-wrap: wrap; gap: 0 0.5rem; align-items: baseline; }
+.sk-triggers dt::after { content: ':'; }
+.sk-triggers dd { margin: 0; }
+.sk-triggers .sk-note { margin: 0; }
 
 .sk-block { margin-top: 0.65rem; }
 .sk-sub {

@@ -414,6 +414,17 @@ function strikes(row) {
   return { value: false, reason: 'It deals no weapon damage, and spells don’t count as strikes.' };
 }
 
+// "Chance to cast on cast" (ESR's cast-on-cast plugin, d2rloader/config/celestialrayone.cast-on-cast.toml):
+// it fires after a real cast in the cast animation (mode 10, skills.txt anim SC) of a skill that
+// isn't an aura. { value, reason }, or null for passives, auras and skills with no animation.
+const ANIM_NAMES = { A1: 'attack', A2: 'attack', TH: 'throw', KK: 'kick', SQ: 'sequence', S1: 'special', S2: 'special', S3: 'special', S4: 'special' };
+function casts(row) {
+  if (row.passive === '1' || row.aura === '1' || !row.anim) return null;
+  if (row.anim === 'SC') return { value: true, reason: 'It’s cast with the casting animation.' };
+  const anim = ANIM_NAMES[row.anim];
+  return { value: false, reason: `It uses ${anim ? `the ${anim}` : 'another'} animation, and only skills cast with the casting animation count.` };
+}
+
 const extraLines = new Map((rules.extraLines || []).map(x => [x.skill.toLowerCase(), x.lines]));
 // Hand-written descriptions (skill-rules.json descriptions), for skills whose numbers depend on
 // other skills or on mechanics the data can't pin down: { skill (skills.txt name): text }.
@@ -446,6 +457,11 @@ function entryFor(row, cls) {
     e.os = strike.value ? 1 : 0;
     if (strike.reason) e.osr = strike.reason;
     if (cls !== 'other') bump(report.onStriking, strike.value ? 'triggers' : 'does not trigger', name);
+  }
+  const cast = casts(row);
+  if (cast) {
+    e.oc = cast.value ? 1 : 0;
+    e.ocr = cast.reason;
   }
   // Descriptions are hard-wrapped for the tooltip; rejoin a line that continues a sentence
   // (starts lowercase), keep breaks before lines that start a new one.

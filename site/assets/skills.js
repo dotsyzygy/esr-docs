@@ -106,9 +106,13 @@
     return [line.a, line.b].filter(Boolean).join(' ').replace(/%\+?\d*(?:\.\d+)?[dsif]/g, ' ').replace(/%%/g, '%');
   }
 
-  // Whether the skill triggers items' "chance to cast on striking" (generated as e.os).
-  function strikeText(s) {
-    return s.os ? 'Triggers “on striking”' : 'Doesn’t trigger “on striking”';
+  // Whether the skill triggers items' "chance to cast on striking" / "on cast" (generated as
+  // e.os / e.oc). Only searchable here; skill.html shows them.
+  function triggerText(s) {
+    return [
+      s.os == null ? '' : s.os ? 'Triggers “on striking”' : 'Doesn’t trigger “on striking”',
+      s.oc == null ? '' : s.oc ? 'Triggers “on cast”' : 'Doesn’t trigger “on cast”'
+    ].join(' ');
   }
 
   function buildIndex() {
@@ -129,7 +133,7 @@
       s._name = norm(s.n);
       s._text = norm([
         s.n, cls ? cls.title : '', s._tree, s.d || '', (s.pre || []).join(' '),
-        s.pas ? 'passive' : '', s.aur ? 'aura' : '', s.os == null ? '' : strikeText(s), s.c === 'other' ? 'oskill item skill' : '',
+        s.pas ? 'passive' : '', s.aur ? 'aura' : '', triggerText(s), s.c === 'other' ? 'oskill item skill' : '',
         lines.map(templateText).join(' '),
         (s.src || []).map(function (x) { return x.k + ' ' + (x.n || '') + ' ' + (x.v || ''); }).join(' ')
       ].join(' '));
@@ -401,7 +405,6 @@
     if (s.aur) tags.push('Aura');
     if (s._ulvl) tags.push('Scales with character level');
     if (s.hp) tags.push('Scales with hard points');
-    if (s.os != null) tags.push(strikeText(s));
 
     var c = { stale: true, showAll: false };
     c.general = s.g ? el('ul', { class: 'sk-lines sk-general' }) : null;
