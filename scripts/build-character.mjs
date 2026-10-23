@@ -273,8 +273,13 @@ for (const r of readTsv('skills.txt')) {
   else if (r.aura === '1' && as.length) kind = 'aura';
   // a cast buff puts a timed state on the caster (aurastate), a curse on its targets (auratargetstate)
   else if (as.length && r.auralencalc && (r.aurastate || r.auratargetstate)) kind = 'buff';
+  // a stance toggled on with the shapeshift routine (srvdofunc 116) lasts until it's switched off:
+  // Elemental Fury, Eagle Eye, Life Pact
+  else if (as.length && r.aurastate && r.srvdofunc === '116') kind = 'buff';
   if (!kind) continue;
   const e = effects[r['*Id']] = { k: r.skill.toLowerCase(), kind, as, ps };
+  // stances that share a state replace each other (Power Overwhelming, Omnipotence, Elemental Fury)
+  if (r.srvdofunc === '116' && r.aurastate) e.x = r.aurastate;
   // aurafilter says whom the stats land on: a filter that ignores allies (0x8000) or is just
   // players/monsters (2, 3) puts them on enemies (Conviction, Judgement, Super Teleport), unless
   // it has 0x40000000 (the caster's own stacks) or the state is the caster's during the skill

@@ -234,7 +234,7 @@
           var e = data.effects[id];
           if (!e) return;
           var key = 'skill:' + id;
-          var c = candidates[key] || (candidates[key] = { key: key, id: +id, k: e.k, kind: e.kind, as: e.as, ps: e.ps, sc: e.sc, enemy: !!e.t, sets: [] });
+          var c = candidates[key] || (candidates[key] = { key: key, id: +id, k: e.k, kind: e.kind, as: e.as, ps: e.ps, sc: e.sc, x: e.x, enemy: !!e.t, sets: [] });
           c.sets.push(set);
         });
         gear[set].forEach(function (a) {
@@ -256,6 +256,12 @@
         var dflt = !c.cast && c.available;
         c.enabled = c.available && (c.key in on ? !!on[c.key] : dflt);
         c.levels = [];
+      });
+      // stances that share a state replace each other: only the first one that's on counts
+      var stances = {};
+      list.forEach(function (c) {
+        if (!c.x || !c.enabled) return;
+        if (stances[c.x]) { c.enabled = false; c.replacedBy = stances[c.x]; } else stances[c.x] = c;
       });
 
       // Recast until nothing changes. extra = the stats of the effects that are on.
@@ -280,7 +286,18 @@
           c.enemyStats = r ? r.enemy : [];
           c.stages = r && r.stages; c.stage = r && r.stage;
           c.seconds = r && r.frames ? Math.floor(r.frames / 25) : 0;
-          if (c.enabled) c.stats.forEach(function (st) { next.push({ stat: st, from: c.name || c.k }); });
+        });
+        // the same aura from two sources doesn't stack: the highest level applies
+        list.forEach(function (c) {
+          c.outranked = null;
+          if (!c.enabled || c.kind !== 'aura' && c.kind !== 'item aura') return;
+          list.forEach(function (o) {
+            if (o !== c && o.enabled && o.id === c.id && (o.kind === 'aura' || o.kind === 'item aura') &&
+              (o.level > c.level || o.level === c.level && list.indexOf(o) < list.indexOf(c))) c.outranked = o;
+          });
+        });
+        list.forEach(function (c) {
+          if (c.enabled && !c.outranked) c.stats.forEach(function (st) { next.push({ stat: st, from: c.name || c.k }); });
         });
         var sig = list.map(function (c) { return c.key + '=' + c.level + ':' + c.enabled; }).join('|');
         extra = next;
@@ -308,7 +325,7 @@
       extra = [];
       var onEnemy = [];
       list.forEach(function (c) {
-        if (!c.enabled) return;
+        if (!c.enabled || c.outranked) return;
         var from = c.name + (c.kind === 'item aura' ? ' (aura on ' + c.item + ')' : '');
         c.stats.forEach(function (st) { extra.push({ stat: st, from: from }); });
         c.enemyStats.forEach(function (st) { onEnemy.push({ stat: st, from: from }); });

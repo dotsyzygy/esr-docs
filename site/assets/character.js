@@ -263,7 +263,7 @@
     });
     return section('effects', 'Buffs, auras and passives', kids,
       'Switch them on to add them to the attributes and skill levels below. Passives and auras from the gear in hand are on, as in game; buffs and class auras are off until you switch them on. ' +
-      'Curses, debuffs and auras that land on enemies list those stats under “On enemies”: they don’t change the character, and the resistances they take off go to the target in Damage. Effects that stack show a stage to pick (default: the last that adds anything). ' +
+      'Curses, debuffs and auras that land on enemies list those stats under “On enemies”: they don’t change the character, and the resistances they take off go to the target in Damage. Effects that stack show a stage to pick (default: the last that adds anything). The same aura from two sources doesn’t stack (the highest level applies), and stances that share a state (Elemental Fury, Power Overwhelming, Omnipotence) replace each other. ' +
       'A buff’s level is set when it’s cast, so it can be cast with the switch weapons and keep its level after swapping back. Buffs that add skill levels (Battle Command) raise their own next cast and every buff cast after them: the page recasts them until their levels stop rising, says how many casts that takes, and casts every other buff once after them.');
   }
 
@@ -273,6 +273,8 @@
     box.checked = e.enabled;
     box.addEventListener('change', function () {
       current.on[e.key] = box.checked;
+      // stances that share a state replace each other
+      if (box.checked && e.x) model.effects.forEach(function (o) { if (o !== e && o.x === e.x) current.on[o.key] = false; });
       redraw(id);
     });
     var meta = [];
@@ -314,6 +316,10 @@
         redraw(stId);
       });
       kids.push(el('div', { class: 'ch-effect-set' }, [el('label', { class: 'sr-only', for: stId, text: e.name + ': stage' }), st]));
+    }
+    if (e.outranked) {
+      var o = e.outranked;
+      kids.push(el('p', { class: 'ch-recast', text: 'Not counted: the same aura doesn’t stack, and the level ' + o.level + ' one' + (o.item ? ' from ' + o.item : '') + ' applies.' }));
     }
     if (e.casts > 1) {
       kids.push(el('p', { class: 'ch-recast', text: 'Cast ' + e.casts + ' times to reach level ' + e.level + ' (' + e.levels.join(' → ') + ')' }));
