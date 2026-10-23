@@ -465,6 +465,7 @@
     ['Lightning', 'lightresist', 'maxlightresist'], ['Poison', 'poisonresist', 'maxpoisonresist']
   ];
   var BASE_MAX_RESIST = 75;
+  var MAX_RESIST_CEILING = 95; // the engine's hard cap; max resist never goes past it
 
   // Total defense: each armor's own defense with its own Enhanced Defense, every flat defense
   // (items, charms, skills such as Sway), a quarter of dexterity, then defense % from skills.
@@ -497,10 +498,12 @@
 
     var res = RESISTS.map(function (r) {
       var total = v(r[1]) + penalty;
-      var max = BASE_MAX_RESIST + v(r[2]);
+      var raw = BASE_MAX_RESIST + v(r[2]);
+      var max = Math.min(raw, MAX_RESIST_CEILING);
       return el('div', null, [
         el('dt', { text: r[0] + ' Resist' }),
-        el('dd', null, [Math.min(total, max) + '%', el('span', { class: 'ch-plus', text: ' (' + total + '% of max ' + max + '%)' })])
+        el('dd', null, [Math.min(total, max) + '%', el('span', { class: 'ch-plus', text: ' (' + total + '% of max ' + max + '%' +
+          (raw > max ? '; ' + raw + '% before the ' + MAX_RESIST_CEILING + '% ceiling' : '') + ')' })])
       ]);
     });
     res.push(el('div', null, [el('dt', { text: 'Magic Resist' }), el('dd', { text: v('magicresist') + '%' })]));
