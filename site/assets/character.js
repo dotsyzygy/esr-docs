@@ -263,7 +263,7 @@
     });
     return section('effects', 'Buffs, auras and passives', kids,
       'Switch them on to add them to the attributes and skill levels below. Passives and auras from the gear in hand are on, as in game; buffs and class auras are off until you switch them on. ' +
-      'Curses, debuffs and auras that land on enemies list those stats under “On enemies”: they don’t change the character, and the resistances they take off go to the target in Damage. Effects that stack show a stage to pick (default: the last that adds anything). The same aura from two sources doesn’t stack (the highest level applies), and stances that share a state (Elemental Fury, Power Overwhelming, Omnipotence) replace each other. ' +
+      'Curses, debuffs and auras that land on enemies list those stats under “On enemies”: they don’t change the character, and the resistances they take off go to the target in Damage. Effects that stack show a stage to pick (default: the last that adds anything). Stances that share a state (Elemental Fury, Power Overwhelming, Omnipotence) replace each other. ' +
       'A buff’s level is set when it’s cast, so it can be cast with the switch weapons and keep its level after swapping back. Buffs that add skill levels (Battle Command) raise their own next cast and every buff cast after them: the page recasts them until their levels stop rising, says how many casts that takes, and casts every other buff once after them.');
   }
 
@@ -316,10 +316,6 @@
         redraw(stId);
       });
       kids.push(el('div', { class: 'ch-effect-set' }, [el('label', { class: 'sr-only', for: stId, text: e.name + ': stage' }), st]));
-    }
-    if (e.outranked) {
-      var o = e.outranked;
-      kids.push(el('p', { class: 'ch-recast', text: 'Not counted: the same aura doesn’t stack, and the level ' + o.level + ' one' + (o.item ? ' from ' + o.item : '') + ' applies.' }));
     }
     if (e.casts > 1) {
       kids.push(el('p', { class: 'ch-recast', text: 'Cast ' + e.casts + ' times to reach level ' + e.level + ' (' + e.levels.join(' → ') + ')' }));
@@ -698,13 +694,15 @@
         el('ul', null, t.skills.map(function (s) {
           // +skills only raise skills the character can use: hard points, or an oskill
           var lv = s.lv;
-          var extra = lv ? lv.level - lv.hard : 0;
-          var label = lv ? lv.hard + ' hard point' + (lv.hard === 1 ? '' : 's') + (extra ? ', plus ' + extra + ' from items and buffs: level ' + lv.level : '') : 'no points';
+          // when the oskill gives the higher level, it's the oskill plus +all skills
+          var start = lv ? (lv.fromOskill ? lv.oskill : lv.hard) : 0;
+          var extra = lv ? lv.level - start : 0;
+          var label = lv ? (lv.fromOskill ? 'oskill level ' + lv.oskill : lv.hard + ' hard point' + (lv.hard === 1 ? '' : 's')) + (extra ? ', plus ' + extra + ' from items and buffs: level ' + lv.level : '') : 'no points';
           return el('li', { class: lv ? null : 'ch-zero' }, [
             el('a', { href: skillLink(s.name, lv ? lv.level : 1, cls.id), text: s.name }),
             el('span', { class: 'ch-pts', 'aria-label': label }, lv ? [
               String(lv.level),
-              extra ? el('span', { class: 'ch-plus', text: ' (' + lv.hard + '+' + extra + ')' }) : null
+              extra ? el('span', { class: 'ch-plus', text: ' (' + (lv.fromOskill ? 'oskill ' : '') + start + '+' + extra + ')' }) : null
             ] : ['–'])
           ]);
         }))
@@ -747,7 +745,7 @@
       })));
     }
     return section('skills', 'Skills', kids,
-      fmt(spent) + ' hard points in ' + cls.name + ' skills. Levels include +skills from the gear in hand and the buffs that are on, shown as (hard + bonus). ' +
+      fmt(spent) + ' hard points in ' + cls.name + ' skills. Levels include +skills from the gear in hand and the buffs that are on, shown as (hard + bonus). An oskill doesn’t add to hard points: the skill takes the higher level, either the hard points with every bonus or the oskill with +all skills, shown as (oskill + bonus). ' +
       'Bonuses only raise skills the character can use: ones with hard points or granted by an item. +All skills also raise skills granted by items; class and tree bonuses only raise the class’s own.');
   }
 

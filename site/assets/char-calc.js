@@ -124,8 +124,13 @@
       var add = function (id, hard, tree) {
         var oskill = sum(b.oskill[id]);
         if (!hard && !oskill) return;
-        var plus = sum(b.all) + oskill + (tree != null ? sum(b.cls) + sum(b.tab[tree]) + sum(b.single[id]) : 0);
-        out[id] = { hard: hard, oskill: oskill, plus: plus - oskill, level: hard + plus };
+        // an oskill doesn't add to hard points: the skill has the higher of the two levels, the
+        // hard points with every bonus, or the oskill with +all skills only (DorkTheSorc's Elemental
+        // Fury: 1 hard point + 44 = 45, oskill 20 + 28 = 48; the game shows 48)
+        var own = hard ? hard + sum(b.all) + (tree != null ? sum(b.cls) + sum(b.tab[tree]) + sum(b.single[id]) : 0) : 0;
+        var item = oskill ? oskill + sum(b.all) : 0;
+        var level = Math.max(own, item);
+        out[id] = { hard: hard, oskill: oskill, plus: level - hard - oskill, level: level, fromOskill: item > own };
       };
       if (cls) {
         cls.skills.forEach(function (id, i) {
@@ -287,17 +292,8 @@
           c.stages = r && r.stages; c.stage = r && r.stage;
           c.seconds = r && r.frames ? Math.floor(r.frames / 25) : 0;
         });
-        // the same aura from two sources doesn't stack: the highest level applies
         list.forEach(function (c) {
-          c.outranked = null;
-          if (!c.enabled || c.kind !== 'aura' && c.kind !== 'item aura') return;
-          list.forEach(function (o) {
-            if (o !== c && o.enabled && o.id === c.id && (o.kind === 'aura' || o.kind === 'item aura') &&
-              (o.level > c.level || o.level === c.level && list.indexOf(o) < list.indexOf(c))) c.outranked = o;
-          });
-        });
-        list.forEach(function (c) {
-          if (c.enabled && !c.outranked) c.stats.forEach(function (st) { next.push({ stat: st, from: c.name || c.k }); });
+          if (c.enabled) c.stats.forEach(function (st) { next.push({ stat: st, from: c.name || c.k }); });
         });
         var sig = list.map(function (c) { return c.key + '=' + c.level + ':' + c.enabled; }).join('|');
         extra = next;
@@ -325,7 +321,7 @@
       extra = [];
       var onEnemy = [];
       list.forEach(function (c) {
-        if (!c.enabled || c.outranked) return;
+        if (!c.enabled) return;
         var from = c.name + (c.kind === 'item aura' ? ' (aura on ' + c.item + ')' : '');
         c.stats.forEach(function (st) { extra.push({ stat: st, from: from }); });
         c.enemyStats.forEach(function (st) { onEnemy.push({ stat: st, from: from }); });
