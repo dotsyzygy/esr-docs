@@ -613,12 +613,19 @@
         'Deadly strike: ' + dmg.dsTotal + '% in Advanced stats, so ' + pct(dmg.critChance) + ' of hits deal ×' + dmg.critMult.toFixed(2) + ' weapon damage. ' +
         'Crushing blow: ' + dmg.cbTotal + '% in Advanced stats, so ' + pct(dmg.crushChance) + ' of hits, and against this target (' + TARGET_TYPES.filter(function (t) { return t[0] === target.type; })[0][1] + ') each removes ' + data.crush.targets[target.type] + '% of the target’s current life (ranged: ×' + (data.crush.ranged / 100) + ', less physical resistance).' }));
     }
-    if (model.enemy.length) {
-      var lowered = [['fire', 'Fire'], ['cold', 'Cold'], ['light', 'Lightning'], ['poison', 'Poison'], ['magic', 'Magic']]
-        .filter(function (r) { return dmg.res[r[0]] !== (target.res || 0); })
-        .map(function (r) { return r[1] + ' ' + dmg.res[r[0]] + '%'; });
-      if (dmg.physRes !== Math.min(95, target.phys || 0)) lowered.push('Physical ' + dmg.physRes + '%');
-      if (lowered.length) kids.push(el('p', { class: 'ch-help', text: 'Target resistances with the effects on enemies that are on, before pierce: ' + lowered.join(', ') + '.' }));
+    // the target's resistances: the field, then the effects on enemies that are on, then pierce,
+    // so the totals can be checked against the game's "-X% to Enemy … Resist"
+    var resLines = [['fire', 'Fire'], ['cold', 'Cold'], ['light', 'Lightning'], ['poison', 'Poison'], ['magic', 'Magic']]
+      .filter(function (r) { return dmg.res[r[0]] !== (target.res || 0) || dmg.pierce[r[0]]; })
+      .map(function (r) {
+        var k = r[0], cursed = dmg.res[k] !== (target.res || 0);
+        return r[1] + ' ' + (cursed ? dmg.res[k] + '% with the effects on enemies, ' : '') + dmg.finalRes[k] + '%' + (dmg.pierce[k] ? ' after your -' + dmg.pierce[k] + '% to Enemy ' + r[1] + ' Resist' : '');
+      });
+    if (dmg.physRes !== Math.min(95, target.phys || 0)) resLines.push('Physical ' + dmg.physRes + '% with the effects on enemies');
+    var offFoes = model.effects.filter(function (e) { return e.enemy && e.available && !e.enabled; }).map(function (e) { return e.name; });
+    if (resLines.length || offFoes.length) {
+      kids.push(el('p', { class: 'ch-help', text: (resLines.length ? 'Target resistances: ' + resLines.join('; ') + '. ' : '') +
+        (offFoes.length ? 'Effects on enemies that are switched off (see Buffs, auras and passives): ' + offFoes.join(', ') + '.' : '') }));
     }
     if (!dmg.skills.length) {
       kids.push(el('p', { class: 'ui-empty', text: 'None of the skills this character can use deals damage that the page can work out yet.' }));

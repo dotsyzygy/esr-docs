@@ -593,7 +593,9 @@
         });
       });
       return {
-        weapon: weapon ? wording.name(weapon).title : null, phys: phys, res: res, physRes: physRes, critChance: critChance, critMult: critMult, crushChance: cbChance, dsTotal: dsTotal, cbTotal: cbTotal,
+        weapon: weapon ? wording.name(weapon).title : null, phys: phys, res: res, physRes: physRes,
+        finalRes: ELEMENTS.reduce(function (o, e) { o[e.key] = effRes(e); return o; }, {}), // after pierce
+        pierce: ELEMENTS.reduce(function (o, e) { o[e.key] = v(e.pierce); return o; }, {}), critChance: critChance, critMult: critMult, crushChance: cbChance, dsTotal: dsTotal, cbTotal: cbTotal,
         skills: out.sort(function (a, b) { return (b.dps || 0) - (a.dps || 0) || b.avg - a.avg; })
       };
     }
