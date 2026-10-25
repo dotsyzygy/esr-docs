@@ -51,4 +51,4 @@ Adjust `scripts/cube-rules.json` until those lists are empty or expected. `--str
 
 ## License
 
-The code in this repository is under the [MIT License](LICENSE). The game data the pages are generated from belongs to the Eastern Sun Resurrected mod and to Blizzard Entertainment, and is not covered by that license.
+The code in this repository is under the [MIT License](LICENSE). The game data the pages are generated from belongs to the Eastern Sun Resurrected mod and to Blizzard Entertainment, and is not covered by that license, nor are the generated pages and data files insofar as they reproduce it. Diablo is a trademark of Blizzard Entertainment, Inc.; this project is not affiliated with or endorsed by Blizzard.
