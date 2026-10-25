@@ -48,3 +48,7 @@ Adjust `scripts/cube-rules.json` until those lists are empty or expected. `--str
 - `titleAbbreviations`, `ingredientSuffix`, `titleReplacements`: tidy up titles taken from the developer descriptions.
 - `conditionText`, `hiddenConditionStats`: wording for the "Requires:" chips.
 - `propertyText`, `hiddenProperties`, `deltaProperties`: wording for mods the game strings don't cover well.
+
+## License
+
+The code in this repository is under the [MIT License](LICENSE). The game data the pages are generated from belongs to the Eastern Sun Resurrected mod and to Blizzard Entertainment, and is not covered by that license.
