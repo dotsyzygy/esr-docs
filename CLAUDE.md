@@ -100,7 +100,7 @@ Headless Chrome won't go below ~500px wide; to check phone width, load the page 
 
 - `tokenAliases`: fix formula typos in the data (`me3o` → `m3eo`) or pin a token to a number (`mael`: 0).
 - `extraLines`: `{ skill, lines: [{ text, x, y }] }` hand-written printf lines for a skill whose data describes nothing (no skilldesc lines, no granted stats with a description), e.g. Spirit of Nature Mastery.
-- `hideLines`: `{ skill, match }` drops a line that references a string or missile missing from the game data; listed in the report.
+- `hideLines`: `{ skill, match }` drops a line that references a string or missile missing from the game data, or that reads the wrong stat (Valkyrie's "Defense: +X%" shows its Attack Rating); listed in the report.
 - `statText`: `{ stat: { text, calc } }` rewording for a granted stat whose raw value misleads, e.g. `hpregen` (256ths of a point per frame) as Life per second; `{v}` in `calc` is the stat's value.
 - `descriptions`: `{ "<skills.txt name>": text }` hand-written description, only for skills whose numbers depend on other skills or on mechanics the data can't pin down (the Discharges, Long Shot). Always try to derive numbers from the data first (`extraLines` with a calc, or a generic rule in the generator).
 - `grantProperties`: item property codes that count as granting a skill.

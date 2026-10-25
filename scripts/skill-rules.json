@@ -35,7 +35,8 @@
   "hideLines": [
     { "skill": "Plague Javelin", "match": "^Instant Poison Damage", "$comment": "uses missile plaguejavsplash, which missiles.txt doesn't have" },
     { "skill": "Bind Demon", "match": "^StrSkillManaCostPerSecond$", "$comment": "string missing from the game data" },
-    { "skill": "Fire Whirlwind", "match": "^physicaldamagewhilewwdesc$", "$comment": "string missing from the game data" }
+    { "skill": "Fire Whirlwind", "match": "^physicaldamagewhilewwdesc$", "$comment": "string missing from the game data" },
+    { "skill": "Valkyrie", "match": "^StrSkill21$", "$comment": "'Defense: +X%' reads pst1, the Attack Rating (tohit) passive; the Valkyrie gets no defense % stat (pst2 is the flat Defense line)" }
   ],
   "extraLines": [
     { "$comment": "skilldesc has no lines and the skill grants no stats; Spirit of Nature's life calc multiplies by (100 + this skill's level * 5)%",
