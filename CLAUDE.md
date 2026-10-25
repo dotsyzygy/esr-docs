@@ -7,7 +7,8 @@ Docs site for the Eastern Sun Resurrected (ESR) Diablo II Resurrected mod. The s
 - **The game data is read-only.** It lives in a separate repo, `CelestialRayOne/Eastern_Sun_Resurrected`, checked out locally at `../Eastern_Sun_Resurrected`. Never edit anything there, especially `Eastern_Sun_Resurrected.mpq/`. When the data is wrong, stale or confusing (e.g. a `description` that names the wrong gem), fix the presentation here, usually in `scripts/cube-rules.json` or `scripts/skill-rules.json`.
 - **The site is standalone.** Don't link to pages of the old site (easternsunresurrected.com, `*.htm`) until those pages are migrated here.
 - **No tracking, analytics or ads scripts.** The old site has them; this one doesn't.
-- **Commits use the repo-local git identity** (`Syzygy`). Push as the repo owner account, `dotsyzygy`.
+- **Commits use the repo-local git identity** (`Syzygy`). Push as the repo owner account, `dotsyzygy`. `main` has a ruleset ("Protect main": changes through a PR, no force-push or deletion) that admins bypass, so pushing straight to `main` as `dotsyzygy` works and prints "Bypassed rule violations"; that's expected.
+- **The code is MIT** (`LICENSE`); the game data and the generated output that reproduces it aren't covered (README, License).
 - **Make sure both this repo (esr-docs) and Eastern_Sun_Resurrected (../Eastern_Sun_Resurrected) are up to date before making changes.**
 
 ## Layout
