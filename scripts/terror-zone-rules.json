@@ -1,0 +1,19 @@
+{
+  "retailCheck": {
+    "note": "The retail game's config and picks, as a check on the rotation code: indices into the 34 retail zones, matched against d2emu's schedule. They never change, whatever ESR's data does.",
+    "seed": "16665365343970128666",
+    "start": "2025-12-05 00:00:00",
+    "zoneMinutes": 30,
+    "zoneCount": 34,
+    "from": "2026-07-15T00:00:00Z",
+    "picks": [2, 33, 22, 12, 28, 0, 26, 19]
+  },
+  "observed": {
+    "note": "Terror zones seen in game (screenshots from the game's own display, D2R 3.3.93847, ESR 3.2.24). Only comparable while the seed is this one; a mismatch means the zone list changed or the naming no longer matches the game's. Re-check in game and replace them.",
+    "seed": "16664395743969097666",
+    "zones": [
+      { "at": "2026-10-31T23:00:00Z", "areas": ["Chasm of Horrors (Tier 1)", "Ancient Tomb (Tier 2)", "Twisted Maze (Tier 3)", "Infernal Nexus (Tier 4)", "The Eye of the Storm (Tier 5)"] },
+      { "at": "2026-11-01T00:00:00Z", "areas": ["Catacombs", "The Secret Cow Level"] }
+    ]
+  }
+}

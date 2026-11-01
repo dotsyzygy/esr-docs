@@ -10,7 +10,7 @@
 # Steps: check both repos are current with their remotes (warns, or pulls with --pull),
 # run the generators in --strict mode, then check the site: script syntax, generated data,
 # and that every local file a page references exists. Reports are written to
-# cube-report.md, skills-report.md, vessel-report.md, character-report.md and classes-report.md. Any .d2s saves in
+# cube-report.md, skills-report.md, vessel-report.md, character-report.md, classes-report.md and terror-zones-report.md. Any .d2s saves in
 # the repo root (gitignored) are test-parsed by the character generator. Exits non-zero on any failure.
 
 set -euo pipefail
@@ -104,6 +104,7 @@ run_generator build-skills.mjs skills-report.md
 run_generator build-vessel.mjs vessel-report.md
 run_generator build-character.mjs character-report.md
 run_generator build-classes.mjs classes-report.md
+run_generator build-terror-zones.mjs terror-zones-report.md
 
 # ---------------------------------------------------------------------------
 step "Check site"
@@ -124,7 +125,7 @@ done
 # Every generated data file loads and defines its global.
 node - <<'EOF' || FAILURES=$((FAILURES + 1))
 const fs = require('fs'), vm = require('vm');
-const checks = { 'site/data/cube-recipes.enUS.js': 'ESR_CUBE_DATA', 'site/data/skills.enUS.js': 'ESR_SKILL_DATA', 'site/data/vessel-of-souls.enUS.js': 'ESR_VESSEL_DATA', 'site/data/character.enUS.js': 'ESR_CHAR_DATA', 'site/data/classes.enUS.js': 'ESR_CLASS_DATA' };
+const checks = { 'site/data/cube-recipes.enUS.js': 'ESR_CUBE_DATA', 'site/data/skills.enUS.js': 'ESR_SKILL_DATA', 'site/data/vessel-of-souls.enUS.js': 'ESR_VESSEL_DATA', 'site/data/character.enUS.js': 'ESR_CHAR_DATA', 'site/data/classes.enUS.js': 'ESR_CLASS_DATA', 'site/data/terror-zones.enUS.js': 'ESR_TZ_DATA' };
 let bad = 0;
 for (const [file, name] of Object.entries(checks)) {
   const sandbox = { window: {} };

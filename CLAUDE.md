@@ -24,11 +24,13 @@ scripts/build-vessel.mjs         Vessel of Souls generator (cubemain rows, via c
 scripts/vessel-rules.json        vessel tiers, limits, colours and texts (see below)
 scripts/build-classes.mjs        Classes page generator (Warlock Consume effects from monpet.txt)
 scripts/class-rules.json         classes presentation decisions (see below)
+scripts/build-terror-zones.mjs   terror zone rotation data for the home page (desecratedzones.json, level names)
+scripts/terror-zone-rules.json   checks for it: known retail picks, zones seen in game
 scripts/lib/stat-text.mjs        shared stat wording (item-style templates, statText rules)
 scripts/build-character.mjs      Character page data (stat save widths and wording, item bases, names, class skills, buff/aura/passive formulas)
 scripts/lib/skill-records.mjs    skill/missile formula records, shared by build-skills and build-character
 build.sh                         local build + checks (see Commands)
-site/index.html                  home page: intro + a card per page (assets/home.css)
+site/index.html                  home page: intro, terror zones (assets/home.js, terror-zones.js), a card per page (assets/home.css)
 site/cube-recipes.html           cube page
 site/skills.html                 skills page
 site/skill.html                  skill detail page (one skill in full, synergy points adjustable)
@@ -39,7 +41,7 @@ site/character.html              Character page: pick a .d2s, see attributes, sk
 site/assets/site.css             shared tokens, header, nav, .page and ui-* components
 site/assets/site-nav.js          the nav bar and home page cards, from one PAGES list
 site/assets/                     cube-recipes.js/.css; skills.js/.css (skills.css also styles skill.html); skill.js; vessel-of-souls.js/.css; character.js/.css; home.css; skill-calc.js (formula evaluator); d2s.js (save reader), item-text.js (item wording) and char-calc.js (totals, buffs), all UMD; icon
-site/data/                       GENERATED, gitignored (cube-recipes.enUS.js, skills.enUS.js, vessel-of-souls.enUS.js, character.enUS.js)
+site/data/                       GENERATED, gitignored (cube-recipes.enUS.js, skills.enUS.js, vessel-of-souls.enUS.js, character.enUS.js, classes.enUS.js, terror-zones.enUS.js)
 .github/workflows/deploy.yml     build + deploy to Pages
 ```
 
@@ -57,6 +59,7 @@ node scripts/build-skills.mjs --report=skills-report.md              # same --es
 node scripts/build-vessel.mjs --report=vessel-report.md              # same --esr/--strict options
 node scripts/build-character.mjs --report=character-report.md        # same options, plus --save=<a.d2s>[,…]
 node scripts/build-classes.mjs --report=classes-report.md            # same --esr/--strict options
+node scripts/build-terror-zones.mjs --report=terror-zones-report.md  # same --esr/--strict options
 ```
 
 In VS Code, F5 ("Docs: build and open", `.vscode/launch.json`) runs the "Build docs" task (`build.sh --no-open` via Git Bash) and opens `site/index.html` in Chrome or Edge; Ctrl+Shift+B runs just the build. `build.sh` fails if a generator's `--strict` check fails, a script has a syntax error, a data file doesn't load, or a page references a missing local file, lacks the nav or is missing from `PAGES`. It only warns when a repo is behind its remote, or when a generator prints a `warning: …` line (e.g. a skill that resolves to nothing: no lines, no description, nothing from the rules; listed under "Skills that show nothing" in `skills-report.md`, to be fixed with `extraLines`, `descriptions` or `hideSkills`). Preview by opening `site/index.html` (or any page) directly in a browser; it works over `file://`. After any rules or generator change, rebuild and check `cube-report.md`. The goal is 0 uncategorized rows and 0 unresolved tokens. A few unresolved internal properties are expected. For skills, check `skills-report.md`: the goal is 0 formula warnings, unknown line types, unresolved strings and unformatted lines, and nothing under "Skills with no lines at all" that lacks a description. For the vessel, `vessel-report.md`: 0 unresolved tokens/properties and 0 usage limits that match no recipe.
@@ -144,6 +147,14 @@ Headless Chrome won't go below ~500px wide; to check phone width, load the page 
 - **Damage:** `skillDamage` in char-calc: weapon base × the weapon's own ED + its flat damage, × (other ED + skill ED + Str/Dex × weapons.txt StrBonus/DexBonus), + other flat; × the skill's SrcDam/128 (or ESR's calc10 formula, the skill-srcdam-calc plugin); + item elemental damage × SrcDam; + the skill's own damage (pnma/pxma, enma/exma with elemental mastery). **Conversion** is on the missile the skill fires (`srvmissile` with `pSrvDmgFunc` 1: `DmgCalc1` is the % of physical damage converted to the missile's `EType`, `dl12` = dParam1 + dParam2 per level; shipped as `cv` on the skill record): the converted part takes that element's resistance and pierce, and its mastery when the missile has `ApplyMastery`. **Deadly strike** is averaged in at its chance (1 + chance × (multiplier − 1)) on all weapon damage, converted damage included (it applies before conversion), at ESR's multiplier (200 + `criticaldamage`, the critical-strike-damage plugin). The deadly strike and crushing blow chances are the Advanced stats totals (gear, sockets, set bonuses, passives, buffs), capped at 100% as chances; `item_deadlystrike_cap`/`item_crushingblow_cap` are crafting limits checked by cube recipes, not combat caps. **Crushing blow** (also unaffected by conversion) removes a share of the target's current life, so it isn't added to the per-hit DPS: it's averaged over a whole kill (each hit: average damage + chance × share × life left; effective DPS = life ÷ time to kill), with the target type and life set on the page and the shares from ESR's crushing-blow plugin config (`data.crush`: vanilla share × the plugin's percent; ranged × `[attack] ranged`; reduced by physical resistance). Rate from the skill's own animation at the character's IAS/FCR. Resistances have no -100% floor (the user has seen ESR's Monster Display plugin, which shows the resistances hits really meet, go far below -100). Single missile, single target, always hits. Buffs/auras aren't listed as attacks, nor is a skill with a timed state on the caster that fires no missile (`srvmissile`/`a`–`c`), has no SrcDam and describes no damage (`descdam`): Energy Shield, Bone Armor (`nd` on the record), whose damage columns hold other values. The formula records for all class skills and item-granted skills (+ missiles) are in `data.calc`.
 - **Not yet:** multiple missiles/hits, splash, damage over time, conversion, chance to hit (ESR replaces the AR formula: attack-rating plugin), summons, open wounds, the mercenary's auras, charm-dedup, item requirements. Nothing has been checked against the in-game advanced stats screen yet.
 - **Also:** rare names (ESR has no rareprefix/raresuffix data) show as the base name. The shared stash (.d2i) isn't read.
+
+## How the terror zones work
+
+- **Rotation** (`site/assets/terror-zones.js`, UMD, ported from d2r-arcane-tracker, MIT, notice in the file; it recovered the routine from D2R 3.3.93847): deterministic from `desecratedzones.json`, so no live feed is needed. Slot = (time - start) / (zone + break minutes); each roll is SHA-1 of (slot time XOR seed), first 4 bytes little endian, / 2^32. The pick is weighted, in file order: the picked zone's weight goes to 0 and its share to the others, so nothing repeats and waiting zones get likelier. Every slot depends on the ones before it, so the page replays from the config's start.
+- **Seed:** above 2^53, so it's quoted before `JSON.parse` and stays a string (`BigInt` in the calculation). Rounding it changes the whole rotation. ESR has its own seed, 22 zones and 60-minute slots, which differ from retail's.
+- **Worked out in the browser** on every load: the site rebuilds only when the game data changes, so a precomputed schedule would run out. It has its own SHA-1 because `crypto.subtle` is async and may be missing over `file://`.
+- **Names** follow the game's display: each `levels.txt` `LevelGroup` once (`levelgroups.txt` `NameString`, e.g. "Chasm of Horrors (Tier 1)"), then the levels with no group by `LevelName`.
+- **Checks** (`terror-zone-rules.json`): the generator compares its SHA-1 with Node's and the rotation with known retail picks (`--strict` fails), and the result with zones seen in game (a warning, since a new zone list legitimately changes them; re-check in game and replace them).
 
 ## Content decisions already made
 

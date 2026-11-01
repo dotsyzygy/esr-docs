@@ -79,7 +79,7 @@ jobs:
       - name: Checkout docs
         uses: actions/checkout@v5
 
-      - name: Checkout game data (excel, strings, animation data, loader plugin configs)
+      - name: Checkout game data (excel, strings, animation data, terror zone config, loader plugin configs)
         uses: actions/checkout@v5
         with:
           repository: ${{ env.ESR_REPO }}
@@ -92,6 +92,7 @@ jobs:
             /Eastern_Sun_Resurrected.mpq/data/global/excel/
             /Eastern_Sun_Resurrected.mpq/data/local/lng/strings/
             /Eastern_Sun_Resurrected.mpq/data/global/AnimData.d2
+            /Eastern_Sun_Resurrected.mpq/data/hd/global/excel/desecratedzones.json
             /d2rloader/config/
 
       - name: Setup Node
@@ -114,6 +115,9 @@ jobs:
       - name: Generate class page data
         run: node scripts/build-classes.mjs --esr=esr --report=classes-report.md
 
+      - name: Generate terror zone data
+        run: node scripts/build-terror-zones.mjs --esr=esr --report=terror-zones-report.md
+
       - name: Record build info
         env:
           ESR_SHA: ${{ needs.check.outputs.esr_sha }}
@@ -132,6 +136,8 @@ jobs:
             cat character-report.md
             echo
             cat classes-report.md
+            echo
+            cat terror-zones-report.md
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Setup Pages

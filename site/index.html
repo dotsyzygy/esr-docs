@@ -18,9 +18,27 @@
   </header>
 
   <main class="page home">
-    <h2 class="ui-title">Docs</h2>
     <p class="home-intro">Reference pages for Eastern Sun Resurrected. They're generated straight from the mod's game data, so they stay current with each patch.</p>
 
+    <section class="tz" id="tz-section" aria-labelledby="tz-title" hidden>
+      <h2 id="tz-title" class="ui-title">Terror Zones</h2>
+      <div class="tz-grid">
+        <div class="tz-card tz-current">
+          <h3>Now</h3>
+          <div id="tz-now"></div>
+          <p id="tz-until" class="ui-meta"></p>
+          <span id="tz-countdown" role="timer"></span>
+        </div>
+        <div class="tz-card">
+          <h3>Coming up</h3>
+          <ol id="tz-next" class="tz-next"></ol>
+        </div>
+      </div>
+      <p class="ui-meta">Worked out from the mod's own rotation data, the same way the game does it, using your computer's clock and shown in your local time. A game running an older version of ESR can differ.</p>
+    </section>
+    <noscript><p class="ui-meta">The current terror zones need JavaScript.</p></noscript>
+
+    <h2 class="ui-title">Docs</h2>
     <ul id="site-pages" class="home-cards" aria-label="Pages"></ul>
     <noscript>
       <ul class="home-cards">
@@ -36,6 +54,9 @@
     <p id="build-info" class="ui-meta" hidden></p>
   </main>
 
+  <script src="data/terror-zones.enUS.js"></script>
+  <script src="assets/terror-zones.js"></script>
+  <script src="assets/home.js"></script>
   <script>
     // Which game data the live site was built from (build-info.json is written by the deploy workflow).
     (function () {

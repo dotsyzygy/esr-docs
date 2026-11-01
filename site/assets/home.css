@@ -25,3 +25,30 @@
 .home-card h3 a::after { content: ""; position: absolute; inset: 0; }
 .home-card h3 a:hover { text-decoration: underline; }
 .home-card p { margin: 0; color: var(--esr-text); }
+
+/* Terror zones */
+.tz { margin: 0 0 2rem; }
+.tz[hidden] { display: none; }
+.tz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1rem;
+  margin: 0 0 0.75rem;
+}
+.tz-card {
+  background: var(--esr-surface);
+  border: 1px solid var(--esr-border);
+  border-top: 3px solid var(--esr-accent);
+  border-radius: var(--esr-radius);
+  padding: 1rem 1.15rem 1.1rem;
+}
+.tz-card h3 { margin: 0 0 0.5rem; font-family: var(--esr-serif); font-size: 1.35rem; color: var(--esr-accent); }
+.tz-areas { list-style: none; margin: 0 0 0.75rem; padding: 0; color: var(--esr-mod); font-size: 1.1rem; font-weight: 600; }
+.tz-current .ui-meta { margin: 0; }
+.tz-next { list-style: none; margin: 0; padding: 0; }
+.tz-next > li { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.75rem; padding: 0.3rem 0; border-top: 1px solid var(--esr-border); }
+.tz-next > li:first-child { border-top: 0; padding-top: 0; }
+.tz-next time { color: var(--esr-muted); white-space: nowrap; }
+.tz-inline { list-style: none; margin: 0; padding: 0; }
+.tz-inline li { display: inline; }
+.tz-inline li + li::before { content: ", "; }
