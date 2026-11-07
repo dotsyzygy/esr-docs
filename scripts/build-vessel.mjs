@@ -16,7 +16,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import {
-  parseArgs, gamePaths, requireTable, readText, tsvReader, loadStrings, reportTable, bump,
+  parseArgs, gamePaths, requireTable, readText, tsvReader, loadStrings, loadPerks, reportTable, bump,
 } from './lib/game-data.mjs';
 import { createCubeResolver } from './lib/cube-resolve.mjs';
 
@@ -43,7 +43,7 @@ const report = {
   unmatchedLimits: new Map(),
   sectionCounts: new Map(),
 };
-const R = createCubeResolver({ readTsv, str, rules: cubeRules, report });
+const R = createCubeResolver({ readTsv, str, rules: cubeRules, report, perks: loadPerks(PATHS, str) });
 
 // ---------------------------------------------------------------------------
 // Rules

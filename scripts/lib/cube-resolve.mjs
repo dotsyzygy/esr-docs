@@ -6,7 +6,7 @@
 
 import { CLASS_NAMES as BASE_CLASS_NAMES, bump } from './game-data.mjs';
 
-export function createCubeResolver({ readTsv, str, rules, report }) {
+export function createCubeResolver({ readTsv, str, rules, report, perks = new Map() }) {
   const items = new Map(); // code -> { name, type }
   for (const file of ['weapons.txt', 'armor.txt', 'misc.txt']) {
     for (const r of readTsv(file)) {
@@ -331,14 +331,23 @@ export function createCubeResolver({ readTsv, str, rules, report }) {
     const conds = rules.conditionText || {};
     const key = `${op}:${statName}`;
     let tmpl = key in conds ? conds[key] : conds[statName];
+    if (tmpl === undefined) tmpl = (rules.conditionTextMatch || []).find(c => new RegExp(c.match).test(statName))?.text;
     if (tmpl && typeof tmpl === 'object') tmpl = row.value in tmpl ? tmpl[row.value] : tmpl.default;
     if (tmpl === null) return null;
+    // A specialization perk: the character has learned it while its stat is above 0.
+    const perk = perks.get(row.param);
+    if (tmpl === undefined && perk && rules.perkConditionText) {
+      const v = Number(row.value);
+      const has = { 1: v >= 1, 2: v >= 1, 3: v >= 1, 5: v >= 1, 6: v >= 1, 15: v >= 0, 17: v === 0, 18: v > 0 }[op] ?? false;
+      tmpl = rules.perkConditionText[has ? 'has' : 'not'].replace('{perk}', perk.perk).replace('{specialization}', perk.specialization);
+    }
     if (tmpl === undefined && hiddenCondStats.some(re => re.test(statName))) return null;
     if (tmpl === undefined) {
       bump(report.unhandledConditions, key, row.description);
       return null;
     }
-    return tmpl.replace('{op}', OPS[op] || `op${op}`).replace('{value}', row.value);
+    const statText = str(stat?.descstrpos) || statName;
+    return tmpl.replace('{op}', OPS[op] || `op${op}`).replace('{value}', row.value).replace('{stat}', statText);
   }
 
   function outputSet(row, prefix) {

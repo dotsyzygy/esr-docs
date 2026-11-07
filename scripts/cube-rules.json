@@ -173,7 +173,7 @@
       "hide": true
     },
     {
-      "match": "^Check if already",
+      "match": "^Check if (already|Anointment Pending)",
       "hide": true
     },
     {
@@ -352,6 +352,25 @@
       "match": "^(Awaken|Unawaken|Apply Awaken|Remove Awaken) Weapon Mastery Token",
       "category": "mastery",
       "title": "$1 Weapon Mastery Token"
+    },
+    {
+      "match": "^True Master - (Apply Awaken Weapon Mastery Token)",
+      "category": "mastery",
+      "title": "$1 (True Master)"
+    },
+    {
+      "match": "^Remove Weapon Mastery - ",
+      "category": "mastery",
+      "title": "Remove Weapon Mastery"
+    },
+    {
+      "match": "^Alchemist - (Gem Infusion|Alchemical Excellence)",
+      "category": "gem",
+      "title": "$1"
+    },
+    {
+      "match": "^Mystical Tesseract",
+      "category": "mat"
     },
     {
       "match": "^Add Anointment Dummy Stat",
@@ -754,6 +773,10 @@
       "0": "Item must not be D-Stoned",
       "default": "D-Stone level requirement {op} {value}"
     },
+    "craftflag_crucible": {
+      "0": "Item must not have a Crucible Forging mod",
+      "default": "Item must have the matching Crucible Forging mod"
+    },
     "item_mercflag": {
       "0": "Item must not be Merc-only",
       "default": "Item must be Merc-only"
@@ -771,6 +794,13 @@
     "16:item_fasterblockrate": "Faster Block Rate must be below {value}%",
     "16:item_fasterattackrate": "Increased Attack Speed must be below {value}%",
     "16:item_fastercastrate": "Faster Cast Rate must be below {value}%"
+  },
+  "conditionTextMatch": [
+    { "match": "^weapon_mastery_", "text": { "0": "Item must not have {stat}", "default": "Item must have {stat}" } }
+  ],
+  "perkConditionText": {
+    "has": "Character must have the {perk} perk ({specialization})",
+    "not": "Character must not have the {perk} perk ({specialization})"
   },
   "hiddenConditionStats": [
     "_dummy$",

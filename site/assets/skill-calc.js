@@ -255,7 +255,8 @@
     if ((m = /^par(\d+)$/.exec(name))) return par(rec, +m[1]);
     if ((m = /^clc(\d+)$/.exec(name))) return this.cached(rec, name, rec.c && rec.c[m[1] - 1], lvl);
     if ((m = /^ast(\d+)$/.exec(name))) return this.cached(rec, name, rec.as && rec.as[m[1] - 1], lvl);
-    if ((m = /^pst(\d+)$/.exec(name))) return this.cached(rec, name, rec.ps && rec.ps[m[1] - 1], lvl);
+    // passive calcs: pst1-pst9, then ps10-ps14 (the game's tokens are four characters)
+    if ((m = /^(?:pst|ps(?=1\d$))(\d+)$/.exec(name))) return this.cached(rec, name, rec.ps && rec.ps[m[1] - 1], lvl);
     if ((m = /^ln(\d)(\d)$/.exec(name))) return par(rec, +m[1]) + (lvl - 1) * par(rec, +m[2]);
     if ((m = /^dm(\d)(\d)$/.exec(name))) {
       var lo = par(rec, +m[1]), hi = par(rec, +m[2]);

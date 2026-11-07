@@ -112,6 +112,28 @@ export function loadStringIds(stringsDir, keys) {
   return ids;
 }
 
+// Specialization perks (ESR's specializations plugin, d2rloader/config/celestialrayone.specializations.toml):
+// Map(itemstatcost id -> { specialization, perk }). Each [[specialization]] lists its perks' stat ids
+// and title strings in the same order. Empty when the file is missing.
+export function loadPerks(paths, str) {
+  const file = path.join(paths.esr, 'd2rloader', 'config', 'celestialrayone.specializations.toml');
+  const perks = new Map();
+  if (!fs.existsSync(file)) return perks;
+  const list = (block, key) => {
+    const m = block.match(new RegExp(`^${key}\\s*=\\s*\\[([^\\]]*)\\]`, 'm'));
+    return m ? m[1].replace(/#.*$/gm, '').split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean) : [];
+  };
+  for (const block of readText(file).split(/^\[\[specialization\]\]\s*$/m).slice(1)) {
+    const name = block.match(/^name\s*=\s*"([^"]*)"/m)?.[1];
+    const titles = list(block, 'titles');
+    list(block, 'stats').forEach((id, i) => {
+      const perk = str(titles[i]?.replace(/^@d2r:/, ''));
+      if (name && perk) perks.set(id, { specialization: name, perk });
+    });
+  }
+  return perks;
+}
+
 export const CLASS_NAMES = {
   ama: 'Amazon', ass: 'Assassin', bar: 'Barbarian', dru: 'Druid',
   nec: 'Necromancer', pal: 'Paladin', sor: 'Sorceress', war: 'Warlock',
