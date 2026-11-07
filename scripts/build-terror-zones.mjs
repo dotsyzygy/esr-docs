@@ -53,17 +53,18 @@ const raw = readText(CONFIG_FILE).replace(/\/\*[\s\S]*?\*\//g, '').replace(/("se
 const utcSeconds = text => Date.parse(text.trim().replace(' ', 'T') + 'Z') / 1000;
 
 // The names the game's own display lists: each level group once (Chasm of Horrors (Tier 1) for all
-// its levels), then the levels with no group by name. Checked with the screenshots in the rules.
+// its levels), each level with no group by name, ordered by lowest level id (Nowhere 113, The Dead
+// End 122, The Icecrown Citadel 200). Checked with the screenshots in the rules.
 function zoneAreas(zone) {
-  const grouped = new Set(), ungrouped = new Set();
+  const firstId = new Map(); // name -> lowest level id
   for (const { level_id: id } of zone.levels) {
     const level = levels.get(String(id));
     const group = level && groups.get(level.LevelGroup);
     const name = group ? str(group.NameString) : level && str(level.LevelName);
     if (!name) bump(report.unnamed, id, zone.id);
-    else (group ? grouped : ungrouped).add(name);
+    else firstId.set(name, Math.min(firstId.get(name) ?? Infinity, id));
   }
-  return [...grouped, ...ungrouped];
+  return [...firstId].sort((a, b) => a[1] - b[1]).map(([name]) => name);
 }
 
 const configs = JSON.parse(raw).desecrated_zones.map(c => {
